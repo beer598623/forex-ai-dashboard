@@ -6,7 +6,6 @@
   <meta name="description" content="Forex AI Intelligence Terminal — institutional-grade two-stage AI market scanner">
   <title>Forex AI · Intelligence Terminal</title>
   <link rel="stylesheet" href="css/terminal.css">
-  <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js" defer></script>
 </head>
 <body>
   <div class="status-bar" id="status-bar">
@@ -23,25 +22,21 @@
   </nav>
 
   <main class="main">
-    <aside class="panel">
-      <div class="panel-header"><h2>Market Heatmap</h2><span class="count" id="heatmap-count"></span></div>
-      <div id="heatmap"><div class="empty-state"><span class="loading"></span></div></div>
+    <aside class="panel panel-filter">
+      <div class="panel-header"><h2>Market Filter</h2></div>
+      <div id="filter"><div class="empty-state"><span class="loading"></span></div></div>
     </aside>
 
-    <section class="panel">
-      <div class="panel-header"><h2>Top Opportunities</h2><span class="count">Click row for thesis</span></div>
+    <section class="panel panel-opps">
+      <div class="panel-header"><h2>Top Opportunities</h2><span class="count" id="opp-count"></span></div>
       <div id="opportunities"><div class="empty-state"><span class="loading"></span></div></div>
     </section>
 
-    <aside class="panel">
-      <div class="panel-header"><h2>Regime Overview</h2></div>
-      <div id="regime"><div class="empty-state"><span class="loading"></span></div></div>
+    <aside class="panel panel-summary">
+      <div class="panel-header"><h2>Asset Summary</h2></div>
+      <div id="summary"><div class="empty-state"><span class="loading"></span></div></div>
     </aside>
   </main>
-
-  <div class="modal-backdrop" id="modal-backdrop" onclick="if(event.target.id==='modal-backdrop')closeDetail()">
-    <div class="modal" id="modal-content"></div>
-  </div>
 
   <script src="js/data.js"></script>
   <script src="js/components.js"></script>

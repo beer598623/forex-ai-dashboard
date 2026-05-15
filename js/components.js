@@ -1,11 +1,12 @@
 // Render components — pure functions returning HTML strings
 
-const ASSET_GROUPS = {
-  'Forex': ['forex'],
-  'Metals': ['metals'],
-  'Large Cap Crypto': ['large_cap_crypto'],
-  'Altcoin': ['altcoin'],
-  'Indices': ['indices'],
+const ASSET_CLASS_META = {
+  all:             { label: 'All' },
+  forex:           { label: 'Forex' },
+  metals:          { label: 'Metals' },
+  large_cap_crypto:{ label: 'Crypto' },
+  altcoin:         { label: 'Altcoin' },
+  indices:         { label: 'Indices' },
 };
 
 function renderStatusBar(latest) {
@@ -29,42 +30,28 @@ function renderStatusBar(latest) {
   `;
 }
 
-function renderHeatmap(opps) {
-  if (!opps.length) {
-    return `<div class="empty-state"><div class="icon">◇</div><div>No assets scanned yet</div></div>`;
-  }
-  const byClass = {};
+function renderMarketFilter(opps, activeFilter) {
+  const counts = { all: opps.length, forex: 0, metals: 0, large_cap_crypto: 0, altcoin: 0, indices: 0 };
   for (const o of opps) {
-    const cls = o.asset_class || 'other';
-    if (!byClass[cls]) byClass[cls] = [];
-    byClass[cls].push(o);
+    const cls = (o.asset_class || '').toLowerCase();
+    if (counts[cls] !== undefined) counts[cls]++;
   }
 
   let html = '';
-  for (const [groupName, classes] of Object.entries(ASSET_GROUPS)) {
-    const items = classes.flatMap(c => byClass[c] || []);
-    if (!items.length) continue;
-    items.sort((a, b) => (b.final_score || b.quant_score || 0) - (a.final_score || a.quant_score || 0));
-    html += `<div class="heatmap-group">
-      <div class="group-label">${escapeHTML(groupName)} · ${items.length}</div>`;
-    for (const o of items) {
-      const grade = o.grade || 'D';
-      const isHigh = grade === 'A+' || grade === 'A';
-      const score = fmtNumber(o.final_score || o.quant_score, 1);
-      html += `
-        <div class="heatmap-tile ${isHigh ? 'high-conviction' : ''}" onclick="openDetail('${escapeHTML(o.scan_id)}','${escapeHTML(o.symbol)}')">
-          <span class="symbol">${escapeHTML(o.symbol)}</span>
-          <span class="score mono">${score}</span>
-          <span class="grade grade-${gradeKey(grade)}">${escapeHTML(grade)}</span>
-        </div>
-      `;
-    }
-    html += `</div>`;
+  for (const [key, meta] of Object.entries(ASSET_CLASS_META)) {
+    if (key !== 'all' && counts[key] === 0) continue;
+    const active = key === activeFilter ? ' active' : '';
+    html += `
+      <div class="filter-pill${active}" data-cls="${key}" onclick="setFilter('${key}')">
+        <span class="filter-label">${escapeHTML(meta.label)}</span>
+        <span class="filter-count">${counts[key]}</span>
+      </div>
+    `;
   }
-  return html || `<div class="empty-state"><div class="icon">◇</div><div>No assets</div></div>`;
+  return html || `<div class="empty-state"><div class="icon">◇</div><div>No data</div></div>`;
 }
 
-function renderOpportunitiesTable(opps) {
+function renderOpportunitiesCards(opps) {
   if (!opps.length) {
     return `<div class="empty-state">
       <div class="icon">◯</div>
@@ -72,153 +59,116 @@ function renderOpportunitiesTable(opps) {
       <div class="hint">Awaiting next scheduled scan cycle.</div>
     </div>`;
   }
-  let rows = '';
-  for (const o of opps) {
+
+  return opps.map(o => {
     const grade = o.grade || 'D';
     const direction = (o.direction || 'neutral').toLowerCase();
     const arrow = direction === 'long' ? '▲' : direction === 'short' ? '▼' : '─';
-    rows += `
-      <tr onclick="openDetail('${escapeHTML(o.scan_id)}','${escapeHTML(o.symbol)}')">
-        <td class="rank">#${o.rank ?? '—'}</td>
-        <td>
-          <div class="symbol">${escapeHTML(o.symbol)}</div>
-          <div class="asset-class">${escapeHTML((o.asset_class || '').replace('_', ' '))}</div>
-        </td>
-        <td class="setup">${escapeHTML((o.setup_type || '—').replace(/_/g, ' '))}</td>
-        <td class="score-cell">${fmtNumber(o.quant_score)}</td>
-        <td class="score-cell">${fmtNumber(o.ai_score ?? (100 - (o.bear_strength ?? 50)))}</td>
-        <td class="score-cell"><strong>${fmtNumber(o.final_score)}</strong></td>
-        <td class="grade-cell">
-          <span class="grade-badge grade-${gradeKey(grade)}">${escapeHTML(grade)}</span>
-        </td>
-        <td class="direction-${direction}">${arrow} ${escapeHTML(direction.toUpperCase())}</td>
-      </tr>
+    const verdict = (grade === 'A+' || grade === 'A') ? 'TRADE' : grade === 'B' ? 'WATCH' : 'SKIP';
+    const verdictCls = (grade === 'A+' || grade === 'A') ? 'verdict-trade' : grade === 'B' ? 'verdict-watch' : 'verdict-skip';
+    const levels = parseJsonField(o.levels) || {};
+    const regime = parseJsonField(o.regime) || {};
+    const mtf = parseJsonField(o.mtf_alignment) || {};
+    const aiScore = fmtNumber(o.ai_score ?? (100 - (o.bear_strength ?? 50)));
+
+    const levelsHtml = levels.entry ? `
+      <div class="opp-levels">
+        <span class="level-item"><span class="level-label">Entry</span>${fmtNumber(levels.entry, 4)}</span>
+        <span class="level-item"><span class="level-label">SL</span>${fmtNumber(levels.stop_loss, 4)}</span>
+        <span class="level-item"><span class="level-label">TP1</span>${fmtNumber(levels.tp1, 4)}</span>
+        <span class="level-item"><span class="level-label">R:R</span>${fmtNumber(levels.risk_reward, 2)}</span>
+      </div>` : '';
+
+    const thesisHtml = o.thesis
+      ? `<div class="opp-thesis"><span class="thesis-label">Thesis</span>${escapeHTML(o.thesis)}</div>` : '';
+    const invalidationHtml = o.invalidation
+      ? `<div class="opp-thesis opp-invalidation"><span class="thesis-label">Invalidation</span>${escapeHTML(o.invalidation)}</div>` : '';
+    const bearHtml = o.bear_case
+      ? `<div class="opp-thesis opp-bear"><span class="thesis-label">Bear Case</span>${escapeHTML(o.bear_case)}</div>` : '';
+
+    return `
+      <div class="opp-card">
+        <div class="opp-card-header">
+          <div class="opp-card-left">
+            <span class="opp-rank">#${o.rank ?? '—'}</span>
+            <div>
+              <span class="opp-symbol">${escapeHTML(o.symbol)}</span>
+              <span class="opp-class">${escapeHTML((o.asset_class || '').replace(/_/g, ' '))}</span>
+            </div>
+            <span class="opp-direction direction-${direction}">${arrow} ${direction.toUpperCase()}</span>
+          </div>
+          <div class="opp-card-right">
+            <span class="verdict ${verdictCls}">${verdict}</span>
+            <span class="grade-badge grade-${gradeKey(grade)}">${escapeHTML(grade)}</span>
+          </div>
+        </div>
+        <div class="opp-scores">
+          <div class="score-chip"><span class="score-lbl">Quant</span><span class="score-val">${fmtNumber(o.quant_score)}</span></div>
+          <div class="score-chip"><span class="score-lbl">AI</span><span class="score-val">${aiScore}</span></div>
+          <div class="score-chip final"><span class="score-lbl">Final</span><span class="score-val">${fmtNumber(o.final_score)}</span></div>
+          <div class="score-chip"><span class="score-lbl">Setup</span><span class="score-val setup-text">${escapeHTML((o.setup_type || '—').replace(/_/g, ' '))}</span></div>
+          <div class="score-chip"><span class="score-lbl">Regime</span><span class="score-val">${escapeHTML((regime.dominant_regime || '—').replace(/_/g, ' '))}</span></div>
+          <div class="score-chip"><span class="score-lbl">MTF</span><span class="score-val">${fmtNumber(mtf.alignment_score, 2)}</span></div>
+        </div>
+        ${levelsHtml}
+        ${thesisHtml}
+        ${invalidationHtml}
+        ${bearHtml}
+      </div>
     `;
-  }
-  return `
-    <table class="opp-table">
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Symbol</th>
-          <th>Setup</th>
-          <th style="text-align:right">Quant</th>
-          <th style="text-align:right">AI</th>
-          <th style="text-align:right">Final</th>
-          <th style="text-align:center">Grade</th>
-          <th>Bias</th>
-        </tr>
-      </thead>
-      <tbody>${rows}</tbody>
-    </table>
-  `;
+  }).join('');
 }
 
-function renderRegimeOverview(opps) {
+function renderAssetSummary(opps) {
   if (!opps.length) {
-    return `<div class="empty-state"><div class="icon">◇</div><div>No regime data</div></div>`;
+    return `<div class="empty-state"><div class="icon">◇</div><div>No data</div></div>`;
   }
-  const counts = { trending_up: 0, trending_down: 0, ranging: 0, chop: 0 };
+
+  const LABELS = {
+    forex: 'Forex', metals: 'Metals',
+    large_cap_crypto: 'Large Cap Crypto', altcoin: 'Altcoin', indices: 'Indices',
+  };
+  const groups = {};
   for (const o of opps) {
-    const r = parseJsonField(o.regime) || {};
-    const dom = r.dominant_regime || r.dominant || 'ranging';
-    if (counts[dom] !== undefined) counts[dom]++;
-    else counts.ranging++;
+    const cls = o.asset_class || 'other';
+    if (!groups[cls]) groups[cls] = [];
+    groups[cls].push(o);
   }
-  const total = Object.values(counts).reduce((a, b) => a + b, 0) || 1;
 
-  const segs = `
-    <div class="regime-bar">
-      <div class="seg-up" style="flex:${counts.trending_up}"></div>
-      <div class="seg-down" style="flex:${counts.trending_down}"></div>
-      <div class="seg-range" style="flex:${counts.ranging}"></div>
-      <div class="seg-chop" style="flex:${counts.chop}"></div>
-    </div>
-  `;
+  return Object.entries(groups).map(([cls, items]) => {
+    const avgScore = items.reduce((s, o) => s + (o.final_score || 0), 0) / items.length;
+    const grades = {};
+    const setups = {};
+    const regimes = {};
+    for (const o of items) {
+      const g = o.grade || 'D';
+      grades[g] = (grades[g] || 0) + 1;
+      const s = o.setup_type || 'unknown';
+      setups[s] = (setups[s] || 0) + 1;
+      const r = parseJsonField(o.regime) || {};
+      const dom = r.dominant_regime || 'ranging';
+      regimes[dom] = (regimes[dom] || 0) + 1;
+    }
+    const topSetup = Object.entries(setups).sort((a, b) => b[1] - a[1])[0];
+    const topRegime = Object.entries(regimes).sort((a, b) => b[1] - a[1])[0];
 
-  const rows = [
-    { key: 'trending_up', label: 'Trending Up', color: 'var(--regime-up)' },
-    { key: 'trending_down', label: 'Trending Down', color: 'var(--regime-down)' },
-    { key: 'ranging', label: 'Ranging', color: 'var(--regime-range)' },
-    { key: 'chop', label: 'Chop', color: 'var(--regime-chop)' },
-  ].map(r => `
-    <div class="regime-row">
-      <span><span class="dot" style="background:${r.color}"></span>${r.label}</span>
-      <span class="count">${counts[r.key]} <span class="dim">/ ${total}</span></span>
-    </div>
-  `).join('');
+    const gradeHtml = ['A+', 'A', 'B', 'C', 'D']
+      .filter(g => grades[g])
+      .map(g => `<span class="grade-badge grade-${gradeKey(g)}" style="font-size:9px;padding:1px 5px">${g}×${grades[g]}</span>`)
+      .join(' ');
 
-  return segs + `<div id="regime-chart"></div>` + rows;
-}
-
-function renderRegimeChart(opps) {
-  if (!window.echarts || !opps.length) return;
-  const counts = { 'Up': 0, 'Down': 0, 'Range': 0, 'Chop': 0 };
-  for (const o of opps) {
-    const r = parseJsonField(o.regime) || {};
-    const dom = r.dominant_regime || r.dominant || 'ranging';
-    if (dom === 'trending_up') counts.Up++;
-    else if (dom === 'trending_down') counts.Down++;
-    else if (dom === 'chop') counts.Chop++;
-    else counts.Range++;
-  }
-  const el = document.getElementById('regime-chart');
-  if (!el) return;
-  const chart = echarts.init(el, null, { renderer: 'svg' });
-  chart.setOption({
-    backgroundColor: 'transparent',
-    series: [{
-      type: 'pie',
-      radius: ['50%', '80%'],
-      avoidLabelOverlap: false,
-      itemStyle: { borderColor: '#0a0d12', borderWidth: 2 },
-      label: { show: false },
-      data: [
-        { value: counts.Up, name: 'Up', itemStyle: { color: '#06d6a0' } },
-        { value: counts.Down, name: 'Down', itemStyle: { color: '#e63946' } },
-        { value: counts.Range, name: 'Range', itemStyle: { color: '#f4a261' } },
-        { value: counts.Chop, name: 'Chop', itemStyle: { color: '#6c7a8a' } },
-      ].filter(d => d.value > 0),
-    }],
-  });
-  window.addEventListener('resize', () => chart.resize());
-}
-
-function renderDetail(opp) {
-  if (!opp) return '<div class="empty-state">Not found</div>';
-  const grade = opp.grade || 'D';
-  const levels = parseJsonField(opp.levels) || {};
-  const regime = parseJsonField(opp.regime) || {};
-  const mtf = parseJsonField(opp.mtf_alignment) || {};
-
-  const kvs = [
-    { label: 'Final Score', value: fmtNumber(opp.final_score) },
-    { label: 'Quant Score', value: fmtNumber(opp.quant_score) },
-    { label: 'Bear Strength', value: fmtNumber(opp.bear_strength, 0) },
-    { label: 'MTF Align', value: fmtNumber(mtf.alignment_score, 2) },
-    { label: 'Regime', value: regime.dominant_regime || '—' },
-    { label: 'Setup', value: (opp.setup_type || '—').replace(/_/g, ' ') },
-    { label: 'Entry', value: levels.entry ? fmtNumber(levels.entry, 4) : '—' },
-    { label: 'Stop Loss', value: levels.stop_loss ? fmtNumber(levels.stop_loss, 4) : '—' },
-    { label: 'TP1', value: levels.tp1 ? fmtNumber(levels.tp1, 4) : '—' },
-    { label: 'R:R', value: levels.risk_reward ? fmtNumber(levels.risk_reward, 2) : '—' },
-  ];
-
-  return `
-    <div class="modal-header">
-      <div>
-        <h1>${escapeHTML(opp.symbol)} <span class="grade-badge grade-${gradeKey(grade)}" style="margin-left:8px;font-size:13px;padding:4px 10px">${escapeHTML(grade)}</span></h1>
-        <div class="secondary" style="margin-top:6px;font-size:11px;text-transform:uppercase;letter-spacing:0.1em">
-          ${escapeHTML((opp.asset_class || '').replace('_', ' '))} · ${escapeHTML(opp.direction || 'neutral')}
+    return `
+      <div class="summary-card">
+        <div class="summary-header">
+          <span class="summary-name">${escapeHTML(LABELS[cls] || cls)}</span>
+          <span class="summary-avg">${fmtNumber(avgScore)}</span>
+        </div>
+        <div class="summary-grades">${gradeHtml}</div>
+        <div class="summary-meta">
+          <div><span class="summary-lbl">Setup</span>${escapeHTML((topSetup?.[0] || '—').replace(/_/g, ' '))}</div>
+          <div><span class="summary-lbl">Regime</span>${escapeHTML((topRegime?.[0] || '—').replace(/_/g, ' '))}</div>
         </div>
       </div>
-      <button class="close" onclick="closeDetail()">✕</button>
-    </div>
-    <div class="kv-grid">
-      ${kvs.map(k => `<div class="kv"><div class="label">${escapeHTML(k.label)}</div><div class="value">${escapeHTML(k.value)}</div></div>`).join('')}
-    </div>
-    ${opp.thesis ? `<div class="thesis"><div class="label">Thesis</div>${escapeHTML(opp.thesis)}</div>` : ''}
-    ${opp.invalidation ? `<div class="thesis"><div class="label">Invalidation</div>${escapeHTML(opp.invalidation)}</div>` : ''}
-    ${opp.bear_case ? `<div class="thesis bear"><div class="label">Bear Case</div>${escapeHTML(opp.bear_case)}</div>` : ''}
-  `;
+    `;
+  }).join('');
 }
