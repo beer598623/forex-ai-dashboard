@@ -51,7 +51,19 @@ function renderMarketFilter(opps, activeFilter) {
   return html || `<div class="empty-state"><div class="icon">◇</div><div>No data</div></div>`;
 }
 
-function renderOpportunitiesCards(opps) {
+const OPP_COLS = [
+  { key: 'rank',       label: '#',      align: 'left',   width: '36px' },
+  { key: 'symbol',     label: 'Symbol', align: 'left',   width: '140px' },
+  { key: 'direction',  label: 'Bias',   align: 'left',   width: '80px' },
+  { key: 'setup_type', label: 'Setup',  align: 'left',   width: '' },
+  { key: 'quant_score',label: 'Quant',  align: 'right',  width: '58px' },
+  { key: 'ai_score',   label: 'AI',     align: 'right',  width: '58px' },
+  { key: 'final_score',label: 'Final',  align: 'right',  width: '62px' },
+  { key: 'grade',      label: 'Verdict',align: 'center', width: '96px' },
+  { key: 'mtf_score',  label: 'MTF',   align: 'right',  width: '52px' },
+];
+
+function renderOpportunitiesTable(opps) {
   if (!opps.length) {
     return `<div class="empty-state">
       <div class="icon">◯</div>
@@ -60,63 +72,78 @@ function renderOpportunitiesCards(opps) {
     </div>`;
   }
 
-  return opps.map(o => {
+  const thead = OPP_COLS.map(c => {
+    const sortMark = _sortCol === c.key ? (_sortDir === 1 ? ' <span class="sort-arrow">▲</span>' : ' <span class="sort-arrow">▼</span>') : '';
+    const style = c.width ? ` style="width:${c.width}"` : '';
+    return `<th class="th-${c.align} sortable${_sortCol === c.key ? ' active' : ''}"${style} onclick="sortBy('${c.key}')">${c.label}${sortMark}</th>`;
+  }).join('');
+
+  let rows = '';
+  for (const o of opps) {
+    const key = `${o.scan_id}__${o.symbol}`;
+    const isExpanded = _expanded.has(key);
     const grade = o.grade || 'D';
     const direction = (o.direction || 'neutral').toLowerCase();
     const arrow = direction === 'long' ? '▲' : direction === 'short' ? '▼' : '─';
     const verdict = (grade === 'A+' || grade === 'A') ? 'TRADE' : grade === 'B' ? 'WATCH' : 'SKIP';
     const verdictCls = (grade === 'A+' || grade === 'A') ? 'verdict-trade' : grade === 'B' ? 'verdict-watch' : 'verdict-skip';
-    const levels = parseJsonField(o.levels) || {};
-    const regime = parseJsonField(o.regime) || {};
     const mtf = parseJsonField(o.mtf_alignment) || {};
     const aiScore = fmtNumber(o.ai_score ?? (100 - (o.bear_strength ?? 50)));
+    const hasDetail = o.thesis || o.invalidation || o.bear_case;
+    const expandIcon = hasDetail ? `<span class="expand-icon">${isExpanded ? '▾' : '▸'}</span>` : '';
 
-    const levelsHtml = levels.entry ? `
-      <div class="opp-levels">
-        <span class="level-item"><span class="level-label">Entry</span>${fmtNumber(levels.entry, 4)}</span>
-        <span class="level-item"><span class="level-label">SL</span>${fmtNumber(levels.stop_loss, 4)}</span>
-        <span class="level-item"><span class="level-label">TP1</span>${fmtNumber(levels.tp1, 4)}</span>
-        <span class="level-item"><span class="level-label">R:R</span>${fmtNumber(levels.risk_reward, 2)}</span>
-      </div>` : '';
-
-    const thesisHtml = o.thesis
-      ? `<div class="opp-thesis"><span class="thesis-label">Thesis</span>${escapeHTML(o.thesis)}</div>` : '';
-    const invalidationHtml = o.invalidation
-      ? `<div class="opp-thesis opp-invalidation"><span class="thesis-label">Invalidation</span>${escapeHTML(o.invalidation)}</div>` : '';
-    const bearHtml = o.bear_case
-      ? `<div class="opp-thesis opp-bear"><span class="thesis-label">Bear Case</span>${escapeHTML(o.bear_case)}</div>` : '';
-
-    return `
-      <div class="opp-card">
-        <div class="opp-card-header">
-          <div class="opp-card-left">
-            <span class="opp-rank">#${o.rank ?? '—'}</span>
-            <div>
-              <span class="opp-symbol">${escapeHTML(o.symbol)}</span>
-              <span class="opp-class">${escapeHTML((o.asset_class || '').replace(/_/g, ' '))}</span>
-            </div>
-            <span class="opp-direction direction-${direction}">${arrow} ${direction.toUpperCase()}</span>
-          </div>
-          <div class="opp-card-right">
-            <span class="verdict ${verdictCls}">${verdict}</span>
-            <span class="grade-badge grade-${gradeKey(grade)}">${escapeHTML(grade)}</span>
-          </div>
-        </div>
-        <div class="opp-scores">
-          <div class="score-chip"><span class="score-lbl">Quant</span><span class="score-val">${fmtNumber(o.quant_score)}</span></div>
-          <div class="score-chip"><span class="score-lbl">AI</span><span class="score-val">${aiScore}</span></div>
-          <div class="score-chip final"><span class="score-lbl">Final</span><span class="score-val">${fmtNumber(o.final_score)}</span></div>
-          <div class="score-chip"><span class="score-lbl">Setup</span><span class="score-val setup-text">${escapeHTML((o.setup_type || '—').replace(/_/g, ' '))}</span></div>
-          <div class="score-chip"><span class="score-lbl">Regime</span><span class="score-val">${escapeHTML((regime.dominant_regime || '—').replace(/_/g, ' '))}</span></div>
-          <div class="score-chip"><span class="score-lbl">MTF</span><span class="score-val">${fmtNumber(mtf.alignment_score, 2)}</span></div>
-        </div>
-        ${levelsHtml}
-        ${thesisHtml}
-        ${invalidationHtml}
-        ${bearHtml}
-      </div>
+    rows += `
+      <tr class="opp-row${isExpanded ? ' is-expanded' : ''}${hasDetail ? ' has-detail' : ''}" onclick="toggleRow('${key}')">
+        <td class="td-rank">${expandIcon}#${o.rank ?? '—'}</td>
+        <td>
+          <span class="opp-symbol">${escapeHTML(o.symbol)}</span>
+          <span class="opp-class">${escapeHTML((o.asset_class || '').replace(/_/g, ' '))}</span>
+        </td>
+        <td class="direction-${direction} mono">${arrow} ${direction.toUpperCase()}</td>
+        <td class="td-setup">${escapeHTML((o.setup_type || '—').replace(/_/g, ' '))}</td>
+        <td class="td-num">${fmtNumber(o.quant_score)}</td>
+        <td class="td-num">${aiScore}</td>
+        <td class="td-num td-final">${fmtNumber(o.final_score)}</td>
+        <td class="td-center">
+          <span class="verdict ${verdictCls}">${verdict}</span>
+          <span class="grade-badge grade-${gradeKey(grade)}">${escapeHTML(grade)}</span>
+        </td>
+        <td class="td-num">${fmtNumber(mtf.alignment_score, 2)}</td>
+      </tr>
     `;
-  }).join('');
+
+    if (isExpanded && hasDetail) {
+      const blocks = [
+        o.thesis       ? { cls: 'thesis-block',       label: 'Thesis',       text: o.thesis } : null,
+        o.invalidation ? { cls: 'invalidation-block',  label: 'Invalidation', text: o.invalidation } : null,
+        o.bear_case    ? { cls: 'bear-block',           label: 'Bear Case',    text: o.bear_case } : null,
+      ].filter(Boolean);
+
+      const blocksHtml = blocks.map(b => `
+        <div class="expand-block ${b.cls}">
+          <div class="expand-label">${b.label}</div>
+          <div class="expand-text">${escapeHTML(b.text)}</div>
+        </div>
+      `).join('');
+
+      rows += `
+        <tr class="expand-row">
+          <td colspan="9">
+            <div class="expand-grid cols-${blocks.length}">${blocksHtml}</div>
+          </td>
+        </tr>
+      `;
+    }
+  }
+
+  return `
+    <div class="opp-table-wrap">
+      <table class="opp-table">
+        <thead><tr>${thead}</tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  `;
 }
 
 function renderAssetSummary(opps) {
