@@ -246,17 +246,17 @@ function renderOpportunitiesMobile(opps) {
           <div class="mob-row">
             <span class="mob-lbl">Scores</span>
             <span class="mob-val">
-              <span class="sd-item">Q<span class="sd-val">${fmtNumber(o.quant_score, 0)}</span></span>
+              <span class="sd-item">Quant <span class="sd-val">${fmtNumber(o.quant_score, 0)}</span></span>
               &nbsp;
-              <span class="sd-item sd-bear">B<span class="sd-val">${fmtNumber(o.bear_strength, 0)}</span></span>
+              <span class="sd-item sd-bear">Bear <span class="sd-val">${fmtNumber(o.bear_strength, 0)}</span></span>
               &nbsp;
-              <span class="sd-item">AI<span class="sd-val">${fmtNumber(aiScore, 0)}</span></span>
+              <span class="sd-item">AI <span class="sd-val">${fmtNumber(aiScore, 0)}</span></span>
             </span>
           </div>
           <div class="mob-divider"></div>
           <div class="mob-row"><span class="mob-lbl">Entry</span><span class="mob-val">${entryLine}</span></div>
-          <div class="mob-row"><span class="mob-lbl">Stop</span><span class="mob-val">${slLine}</span></div>
-          <div class="mob-row"><span class="mob-lbl">Target</span><span class="mob-val">${tpLine}</span></div>
+          <div class="mob-row"><span class="mob-lbl">SL</span><span class="mob-val">${slLine}</span></div>
+          <div class="mob-row"><span class="mob-lbl">TP</span><span class="mob-val">${tpLine}</span></div>
           <div class="mob-row"><span class="mob-lbl">R:R</span><span class="mob-val">${rrLine}</span></div>
           ${textBlocks ? `<div class="mob-divider"></div>${textBlocks}` : ''}
         </div>

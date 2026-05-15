@@ -38,6 +38,8 @@ html, body {
   letter-spacing: 0.01em;
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .mono { font-family: var(--font-mono); }
@@ -143,12 +145,15 @@ html, body {
 }
 /* On mobile: filter becomes horizontal strip, opps full width, summary last */
 @media (max-width: 900px) {
-  .main { grid-template-columns: 1fr; grid-template-rows: auto 1fr auto; }
+  .main { grid-template-columns: 1fr; grid-template-rows: auto 1fr auto; width: 100%; }
   .panel-filter { padding: 10px 16px; }
   .panel-summary { border-top: 1px solid var(--border-faint); }
   #filter { display: flex; flex-wrap: wrap; gap: 6px; }
-  .status-bar { flex-wrap: wrap; gap: 8px 16px; }
+  .status-bar { flex-wrap: wrap; gap: 6px 12px; padding: 8px 14px; overflow: hidden; width: 100%; }
   .status-bar .brand { width: 100%; }
+  .status-bar .item { font-size: 10px; }
+  .tabs { padding: 0 10px; overflow-x: auto; }
+  .tab { padding: 11px 10px; font-size: 10px; white-space: nowrap; }
 }
 .panel-header {
   display: flex;
