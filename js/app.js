@@ -42,11 +42,14 @@ function sortOpps(opps) {
   });
 }
 
+function isMobile() { return window.innerWidth < 768; }
+
 function renderFiltered() {
   const opps = sortOpps(getFilteredOpps());
   const countEl = document.getElementById('opp-count');
   if (countEl) countEl.textContent = opps.length + ' signals';
-  document.getElementById('opportunities').innerHTML = renderOpportunitiesTable(opps);
+  document.getElementById('opportunities').innerHTML =
+    isMobile() ? renderOpportunitiesMobile(opps) : renderOpportunitiesTable(opps);
 }
 
 function setFilter(cls) {
@@ -66,8 +69,7 @@ function sortBy(col) {
 function toggleRow(key) {
   if (_expanded.has(key)) _expanded.delete(key);
   else _expanded.add(key);
-  document.getElementById('opportunities').innerHTML =
-    renderOpportunitiesTable(sortOpps(getFilteredOpps()));
+  renderFiltered();
 }
 
 function switchTab(name) {
@@ -78,6 +80,12 @@ function switchTab(name) {
     c.classList.toggle('active', c.id === `tab-${name}`)
   );
 }
+
+let _resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(_resizeTimer);
+  _resizeTimer = setTimeout(renderFiltered, 200);
+});
 
 document.addEventListener('DOMContentLoaded', () => {
   boot();

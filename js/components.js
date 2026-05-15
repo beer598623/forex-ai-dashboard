@@ -87,7 +87,7 @@ function renderOpportunitiesTable(opps) {
     const direction = (o.direction || 'neutral').toLowerCase();
     const arrow = direction === 'long' ? '▲' : direction === 'short' ? '▼' : '─';
     const verdictCls = (grade === 'A+' || grade === 'A') ? 'verdict-trade' : grade === 'B' ? 'verdict-watch' : 'verdict-skip';
-    const verdictLabel = (grade === 'A+' || grade === 'A') ? 'TRADE' : grade === 'B' ? 'WATCH' : 'SKIP';
+    const verdictLabel = (grade === 'A+' || grade === 'A') ? 'Trade' : grade === 'B' ? 'Watch' : 'Skip';
     const mtf = parseJsonField(o.mtf_alignment) || {};
     const levels = parseJsonField(o.levels) || {};
     const regime = parseJsonField(o.regime) || {};
@@ -181,6 +181,90 @@ function renderOpportunitiesTable(opps) {
       </table>
     </div>
   `;
+}
+
+function renderOpportunitiesMobile(opps) {
+  if (!opps.length) {
+    return `<div class="empty-state">
+      <div class="icon">◯</div>
+      <div>NO SCAN DATA</div>
+      <div class="hint">Awaiting next scheduled scan cycle.</div>
+    </div>`;
+  }
+
+  let html = '<div class="mob-list">';
+  for (const o of opps) {
+    const key = `${o.scan_id}__${o.symbol}`;
+    const isExpanded = _expanded.has(key);
+    const grade = o.grade || 'D';
+    const direction = (o.direction || 'neutral').toLowerCase();
+    const arrow = direction === 'long' ? '▲' : direction === 'short' ? '▼' : '─';
+    const verdictCls = (grade === 'A+' || grade === 'A') ? 'verdict-trade' : grade === 'B' ? 'verdict-watch' : 'verdict-skip';
+    const verdictLabel = (grade === 'A+' || grade === 'A') ? 'Trade' : grade === 'B' ? 'Watch' : 'Skip';
+    const mtf = parseJsonField(o.mtf_alignment) || {};
+    const levels = parseJsonField(o.levels) || {};
+    const regime = parseJsonField(o.regime) || {};
+    const aiScore = o.ai_score ?? (100 - (o.bear_strength ?? 50));
+    const setupText = (o.setup_type || '—').replace(/_/g, ' ');
+    const regimeText = (regime.dominant_regime || '—').replace(/_/g, ' ');
+    const mtfText = mtf.alignment_score != null ? fmtNumber(mtf.alignment_score, 2) : '—';
+
+    const entryLine = levels.entry ? fmtNumber(levels.entry, 5) : '—';
+    const slLine = levels.stop_loss ? `<span class="lv-sl">${fmtNumber(levels.stop_loss, 5)}</span>` : '—';
+    const tpLine = levels.tp1 ? `<span class="lv-tp">${fmtNumber(levels.tp1, 5)}</span>` : '—';
+    const rrLine = levels.risk_reward ? `<span class="lv-rr">${fmtNumber(levels.risk_reward, 2)}</span>` : '—';
+
+    const textBlocks = [
+      o.thesis       ? `<div class="mob-text-block thesis"><div class="mob-text-label">Thesis</div><div class="mob-text-content">${escapeHTML(o.thesis)}</div></div>` : '',
+      o.invalidation ? `<div class="mob-text-block invalidation"><div class="mob-text-label">Invalidation</div><div class="mob-text-content">${escapeHTML(o.invalidation)}</div></div>` : '',
+      o.bear_case    ? `<div class="mob-text-block bear"><div class="mob-text-label">Bear Case</div><div class="mob-text-content">${escapeHTML(o.bear_case)}</div></div>` : '',
+    ].join('');
+
+    html += `
+      <div class="mob-card${isExpanded ? ' is-open' : ''}" onclick="toggleRow('${key}')">
+        <div class="mob-card-header">
+          <div class="mob-rank">#${o.rank ?? '—'}</div>
+          <div>
+            <div class="mob-sym-name">${escapeHTML(o.symbol)}</div>
+            <div class="mob-sym-sub">
+              <span class="opp-class-sm">${escapeHTML((o.asset_class || '').replace(/_/g, ' '))}</span>
+              <span class="direction-${direction}"> · ${arrow} ${direction.toUpperCase()}</span>
+            </div>
+          </div>
+          <div class="mob-score-col">${fmtNumber(o.final_score)}</div>
+          <div class="mob-verdict-col">
+            <span class="verdict ${verdictCls}">${verdictLabel}</span>
+            <span class="grade-badge grade-${gradeKey(grade)}" style="font-size:9px;padding:1px 5px">${escapeHTML(grade)}</span>
+          </div>
+          <span class="mob-expand-arrow">▶</span>
+        </div>
+        <div class="mob-card-body">
+          <div class="mob-row"><span class="mob-lbl">Setup</span><span class="mob-val">${escapeHTML(setupText)}</span></div>
+          <div class="mob-row"><span class="mob-lbl">Regime</span><span class="mob-val">${escapeHTML(regimeText)}</span></div>
+          <div class="mob-row"><span class="mob-lbl">MTF</span><span class="mob-val">${escapeHTML(mtfText)}</span></div>
+          <div class="mob-divider"></div>
+          <div class="mob-row">
+            <span class="mob-lbl">Scores</span>
+            <span class="mob-val">
+              <span class="sd-item">Q<span class="sd-val">${fmtNumber(o.quant_score, 0)}</span></span>
+              &nbsp;
+              <span class="sd-item sd-bear">B<span class="sd-val">${fmtNumber(o.bear_strength, 0)}</span></span>
+              &nbsp;
+              <span class="sd-item">AI<span class="sd-val">${fmtNumber(aiScore, 0)}</span></span>
+            </span>
+          </div>
+          <div class="mob-divider"></div>
+          <div class="mob-row"><span class="mob-lbl">Entry</span><span class="mob-val">${entryLine}</span></div>
+          <div class="mob-row"><span class="mob-lbl">Stop</span><span class="mob-val">${slLine}</span></div>
+          <div class="mob-row"><span class="mob-lbl">Target</span><span class="mob-val">${tpLine}</span></div>
+          <div class="mob-row"><span class="mob-lbl">R:R</span><span class="mob-val">${rrLine}</span></div>
+          ${textBlocks ? `<div class="mob-divider"></div>${textBlocks}` : ''}
+        </div>
+      </div>
+    `;
+  }
+  html += '</div>';
+  return html;
 }
 
 function renderAssetSummary(opps) {
