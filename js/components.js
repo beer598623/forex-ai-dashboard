@@ -112,24 +112,41 @@ function renderOpportunitiesTable(opps) {
       </tr>
     `;
 
-    if (isExpanded && hasDetail) {
+    if (isExpanded) {
+      const levels = parseJsonField(o.levels) || {};
+      const regime = parseJsonField(o.regime) || {};
+      const mtfData = parseJsonField(o.mtf_alignment) || {};
+
+      const levelsHtml = (levels.entry || levels.stop_loss || levels.tp1) ? `
+        <div class="expand-levels">
+          ${levels.entry     ? `<span class="el-item"><span class="el-label">Entry</span><span class="el-val">${fmtNumber(levels.entry, 5)}</span></span>` : ''}
+          ${levels.stop_loss ? `<span class="el-item"><span class="el-label">SL</span><span class="el-val red">${fmtNumber(levels.stop_loss, 5)}</span></span>` : ''}
+          ${levels.tp1       ? `<span class="el-item"><span class="el-label">TP1</span><span class="el-val green">${fmtNumber(levels.tp1, 5)}</span></span>` : ''}
+          ${levels.tp2       ? `<span class="el-item"><span class="el-label">TP2</span><span class="el-val green">${fmtNumber(levels.tp2, 5)}</span></span>` : ''}
+          ${levels.risk_reward ? `<span class="el-item"><span class="el-label">R:R</span><span class="el-val cyan">${fmtNumber(levels.risk_reward, 2)}</span></span>` : ''}
+          ${regime.dominant_regime ? `<span class="el-item"><span class="el-label">Regime</span><span class="el-val">${escapeHTML(regime.dominant_regime.replace(/_/g,' '))}</span></span>` : ''}
+          ${mtfData.alignment_score != null ? `<span class="el-item"><span class="el-label">MTF Align</span><span class="el-val">${fmtNumber(mtfData.alignment_score, 2)}</span></span>` : ''}
+        </div>` : '';
+
       const blocks = [
         o.thesis       ? { cls: 'thesis-block',       label: 'Thesis',       text: o.thesis } : null,
         o.invalidation ? { cls: 'invalidation-block',  label: 'Invalidation', text: o.invalidation } : null,
         o.bear_case    ? { cls: 'bear-block',           label: 'Bear Case',    text: o.bear_case } : null,
       ].filter(Boolean);
 
-      const blocksHtml = blocks.map(b => `
-        <div class="expand-block ${b.cls}">
-          <div class="expand-label">${b.label}</div>
-          <div class="expand-text">${escapeHTML(b.text)}</div>
-        </div>
-      `).join('');
+      const blocksHtml = blocks.length ? `
+        <div class="expand-grid cols-${blocks.length}">
+          ${blocks.map(b => `
+            <div class="expand-block ${b.cls}">
+              <div class="expand-label">${b.label}</div>
+              <div class="expand-text">${escapeHTML(b.text)}</div>
+            </div>`).join('')}
+        </div>` : '';
 
       rows += `
         <tr class="expand-row">
           <td colspan="9">
-            <div class="expand-grid cols-${blocks.length}">${blocksHtml}</div>
+            ${levelsHtml}${blocksHtml}
           </td>
         </tr>
       `;

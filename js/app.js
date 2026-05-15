@@ -67,6 +67,15 @@ function toggleRow(key) {
     renderOpportunitiesTable(sortOpps(getFilteredOpps()));
 }
 
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t =>
+    t.classList.toggle('active', t.dataset.tab === name)
+  );
+  document.querySelectorAll('.tab-content').forEach(c =>
+    c.classList.toggle('active', c.id === `tab-${name}`)
+  );
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   boot();
   setInterval(boot, 300_000);

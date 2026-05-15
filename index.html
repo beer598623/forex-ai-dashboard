@@ -15,28 +15,70 @@
   </div>
 
   <nav class="tabs">
-    <a href="index.html" class="tab active">Scanner</a>
-    <a href="#" class="tab" style="opacity:0.4;pointer-events:none">Intelligence</a>
-    <a href="#" class="tab" style="opacity:0.4;pointer-events:none">Performance</a>
-    <a href="#" class="tab" style="opacity:0.4;pointer-events:none">Journal</a>
+    <a class="tab active"  data-tab="scanner"       onclick="switchTab('scanner')">Scanner</a>
+    <a class="tab"         data-tab="intelligence"  onclick="switchTab('intelligence')">Intelligence</a>
+    <a class="tab"         data-tab="performance"   onclick="switchTab('performance')">Performance</a>
+    <a class="tab"         data-tab="journal"       onclick="switchTab('journal')">Journal</a>
   </nav>
 
-  <main class="main">
-    <aside class="panel panel-filter">
-      <div class="panel-header"><h2>Market Filter</h2></div>
-      <div id="filter"><div class="empty-state"><span class="loading"></span></div></div>
-    </aside>
+  <div id="tab-scanner" class="tab-content active">
+    <main class="main">
+      <aside class="panel panel-filter">
+        <div class="panel-header"><h2>Market Filter</h2></div>
+        <div id="filter"><div class="empty-state"><span class="loading"></span></div></div>
+      </aside>
+      <section class="panel panel-opps">
+        <div class="panel-header"><h2>Top Opportunities</h2><span class="count" id="opp-count"></span></div>
+        <div id="opportunities"><div class="empty-state"><span class="loading"></span></div></div>
+      </section>
+      <aside class="panel panel-summary">
+        <div class="panel-header"><h2>Asset Summary</h2></div>
+        <div id="summary"><div class="empty-state"><span class="loading"></span></div></div>
+      </aside>
+    </main>
+  </div>
 
-    <section class="panel panel-opps">
-      <div class="panel-header"><h2>Top Opportunities</h2><span class="count" id="opp-count"></span></div>
-      <div id="opportunities"><div class="empty-state"><span class="loading"></span></div></div>
-    </section>
+  <div id="tab-intelligence" class="tab-content">
+    <div class="coming-soon">
+      <div class="cs-icon">◈</div>
+      <div class="cs-title">Intelligence</div>
+      <div class="cs-sub">Macro context, regime heatmap, cross-asset correlation — coming soon</div>
+      <div class="cs-pills">
+        <span class="cs-pill">Macro Analyst</span>
+        <span class="cs-pill">Regime Heatmap</span>
+        <span class="cs-pill">Correlation Matrix</span>
+        <span class="cs-pill">Session Calendar</span>
+      </div>
+    </div>
+  </div>
 
-    <aside class="panel panel-summary">
-      <div class="panel-header"><h2>Asset Summary</h2></div>
-      <div id="summary"><div class="empty-state"><span class="loading"></span></div></div>
-    </aside>
-  </main>
+  <div id="tab-performance" class="tab-content">
+    <div class="coming-soon">
+      <div class="cs-icon">◉</div>
+      <div class="cs-title">Performance</div>
+      <div class="cs-sub">Grade accuracy, win rate by setup type, calibration curve — coming soon</div>
+      <div class="cs-pills">
+        <span class="cs-pill">Grade Win Rate</span>
+        <span class="cs-pill">Setup Accuracy</span>
+        <span class="cs-pill">Calibration ECE</span>
+        <span class="cs-pill">P&L Attribution</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-journal" class="tab-content">
+    <div class="coming-soon">
+      <div class="cs-icon">◫</div>
+      <div class="cs-title">Trade Journal</div>
+      <div class="cs-sub">Full history of signals, outcomes, and post-trade notes — coming soon</div>
+      <div class="cs-pills">
+        <span class="cs-pill">Signal Log</span>
+        <span class="cs-pill">Outcome Tracking</span>
+        <span class="cs-pill">Notion Sync</span>
+        <span class="cs-pill">Export CSV</span>
+      </div>
+    </div>
+  </div>
 
   <script src="js/data.js"></script>
   <script src="js/components.js"></script>
