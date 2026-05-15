@@ -237,8 +237,9 @@ html, body {
   width: 100%;
   border-collapse: collapse;
   font-family: var(--font-mono);
-  font-size: 12px;
-  min-width: 960px;
+  font-size: 13px;
+  min-width: 560px;
+  table-layout: fixed;
 }
 .opp-table thead th {
   padding: 10px 11px;
@@ -268,7 +269,7 @@ html, body {
 .opp-table tbody tr.opp-row:hover { background: var(--bg-elevated); }
 .opp-table tbody tr.opp-row.is-expanded { background: var(--bg-elevated); border-bottom: none; }
 
-.opp-table td { padding: 12px 11px; vertical-align: middle; }
+.opp-table td { padding: 13px 12px; vertical-align: middle; }
 .td-rank {
   color: var(--text-muted);
   font-size: 11px;
@@ -278,29 +279,50 @@ html, body {
   gap: 4px;
 }
 .expand-icon { font-size: 10px; color: var(--text-dim); }
+.expand-icon-placeholder { display: inline-block; width: 10px; }
 .opp-row.is-expanded .expand-icon { color: var(--accent-cyan); }
+.td-right  { text-align: right; }
+.td-center { text-align: center; }
 
-.opp-symbol {
-  display: block;
+/* 2-line cell shared */
+.cell-top { font-variant-numeric: tabular-nums; }
+.cell-bot { margin-top: 4px; color: var(--text-muted); font-size: 11px; }
+.cell-sep { opacity: 0.4; }
+
+/* Symbol cell */
+.opp-symbol-lg {
   font-weight: 700;
-  font-size: 14px;
+  font-size: 15px;
   color: var(--text-primary);
+  letter-spacing: 0.02em;
 }
-.opp-class {
-  display: block;
-  font-size: 11px;
-  color: var(--text-muted);
+.opp-class-sm {
   text-transform: uppercase;
   letter-spacing: 0.07em;
 }
-.td-setup { color: var(--text-secondary); font-size: 11px; }
-.td-num { text-align: right; font-variant-numeric: tabular-nums; font-size: 12px; }
-.td-final { color: var(--accent-cyan); font-weight: 700; font-size: 13px; }
-.td-bear  { color: var(--regime-down); opacity: 0.85; }
-.td-sl    { color: var(--regime-down); }
-.td-tp    { color: var(--regime-up); }
-.td-rr    { color: var(--accent-cyan); font-weight: 600; }
-.td-center { text-align: center; white-space: nowrap; }
+
+/* Score cell */
+.score-final {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  line-height: 1;
+}
+.score-detail { display: flex; justify-content: flex-end; gap: 10px; margin-top: 5px; }
+.sd-item { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); }
+.sd-item .sd-val { color: var(--text-secondary); margin-left: 2px; }
+.sd-bear .sd-val { color: var(--regime-down); }
+
+/* Levels cell */
+.levels-entry {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.lv-label { color: var(--text-muted); font-size: 10px; text-transform: uppercase; margin-right: 2px; }
+.lv-sl  { color: var(--regime-down); }
+.lv-tp  { color: var(--regime-up); }
+.lv-rr  { color: var(--accent-cyan); font-weight: 600; }
 
 /* Verdict + Grade badges */
 .verdict {

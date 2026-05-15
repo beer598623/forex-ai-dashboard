@@ -52,20 +52,12 @@ function renderMarketFilter(opps, activeFilter) {
 }
 
 const OPP_COLS = [
-  { key: 'rank',        label: '#',      align: 'left',   width: '42px' },
-  { key: 'symbol',      label: 'Symbol', align: 'left',   width: '130px' },
-  { key: 'direction',   label: 'Bias',   align: 'left',   width: '72px' },
-  { key: 'setup_type',  label: 'Setup',  align: 'left',   width: '' },
-  { key: 'quant_score', label: 'Quant',  align: 'right',  width: '54px' },
-  { key: 'bear_strength',label:'Bear',   align: 'right',  width: '48px' },
-  { key: 'ai_score',    label: 'AI',     align: 'right',  width: '48px' },
-  { key: 'final_score', label: 'Final',  align: 'right',  width: '58px' },
-  { key: 'grade',       label: 'Grade',  align: 'center', width: '88px' },
-  { key: 'mtf_score',   label: 'MTF',    align: 'right',  width: '48px' },
-  { key: 'entry',       label: 'Entry',  align: 'right',  width: '76px' },
-  { key: 'sl',          label: 'SL',     align: 'right',  width: '76px' },
-  { key: 'tp1',         label: 'TP1',    align: 'right',  width: '76px' },
-  { key: 'rr',          label: 'R:R',    align: 'right',  width: '44px' },
+  { key: 'rank',        label: '#',        align: 'left',   width: '42px'  },
+  { key: 'symbol',      label: 'Symbol',   align: 'left',   width: '160px' },
+  { key: 'setup_type',  label: 'Analysis', align: 'left',   width: ''      },
+  { key: 'final_score', label: 'Score',    align: 'right',  width: '160px' },
+  { key: 'grade',       label: 'Verdict',  align: 'center', width: '96px'  },
+  { key: 'entry',       label: 'Levels',   align: 'right',  width: '220px' },
 ];
 
 function renderOpportunitiesTable(opps) {
@@ -80,7 +72,9 @@ function renderOpportunitiesTable(opps) {
   const NCOLS = OPP_COLS.length;
 
   const thead = OPP_COLS.map(c => {
-    const sortMark = _sortCol === c.key ? (_sortDir === 1 ? ' <span class="sort-arrow">▲</span>' : ' <span class="sort-arrow">▼</span>') : '';
+    const sortMark = _sortCol === c.key
+      ? (_sortDir === 1 ? ' <span class="sort-arrow">▲</span>' : ' <span class="sort-arrow">▼</span>')
+      : '';
     const style = c.width ? ` style="width:${c.width}"` : '';
     return `<th class="th-${c.align} sortable${_sortCol === c.key ? ' active' : ''}"${style} onclick="sortBy('${c.key}')">${c.label}${sortMark}</th>`;
   }).join('');
@@ -96,41 +90,71 @@ function renderOpportunitiesTable(opps) {
     const verdictLabel = (grade === 'A+' || grade === 'A') ? 'TRADE' : grade === 'B' ? 'WATCH' : 'SKIP';
     const mtf = parseJsonField(o.mtf_alignment) || {};
     const levels = parseJsonField(o.levels) || {};
-    const aiScore = fmtNumber(o.ai_score ?? (100 - (o.bear_strength ?? 50)));
+    const regime = parseJsonField(o.regime) || {};
+    const aiScore = o.ai_score ?? (100 - (o.bear_strength ?? 50));
     const hasDetail = o.thesis || o.invalidation || o.bear_case;
-    const expandIcon = hasDetail ? `<span class="expand-icon">${isExpanded ? '▾' : '▸'}</span>` : '<span class="expand-icon-placeholder"></span>';
+    const expandIcon = hasDetail
+      ? `<span class="expand-icon">${isExpanded ? '▾' : '▸'}</span>`
+      : '<span class="expand-icon-placeholder"></span>';
+
+    // ── Symbol cell (2 lines) ──────────────────────────────────
+    const symbolCell = `
+      <div class="cell-top opp-symbol-lg">${escapeHTML(o.symbol)}</div>
+      <div class="cell-bot">
+        <span class="opp-class-sm">${escapeHTML((o.asset_class || '').replace(/_/g, ' '))}</span>
+        <span class="direction-${direction}"> · ${arrow} ${direction.toUpperCase()}</span>
+      </div>`;
+
+    // ── Analysis cell (2 lines) ────────────────────────────────
+    const setupText = (o.setup_type || '—').replace(/_/g, ' ');
+    const regimeText = (regime.dominant_regime || '—').replace(/_/g, ' ');
+    const mtfText = mtf.alignment_score != null ? fmtNumber(mtf.alignment_score, 2) : '—';
+    const analysisCell = `
+      <div class="cell-top">${escapeHTML(setupText)}</div>
+      <div class="cell-bot">${escapeHTML(regimeText)} <span class="cell-sep">·</span> MTF ${escapeHTML(mtfText)}</div>`;
+
+    // ── Score cell (2 lines) ───────────────────────────────────
+    const scoreCell = `
+      <div class="cell-top score-final">${fmtNumber(o.final_score)}</div>
+      <div class="cell-bot score-detail">
+        <span class="sd-item">Q<span class="sd-val">${fmtNumber(o.quant_score, 0)}</span></span>
+        <span class="sd-item sd-bear">B<span class="sd-val">${fmtNumber(o.bear_strength, 0)}</span></span>
+        <span class="sd-item">AI<span class="sd-val">${fmtNumber(aiScore, 0)}</span></span>
+      </div>`;
+
+    // ── Verdict cell (2 lines) ─────────────────────────────────
+    const verdictCell = `
+      <div class="cell-top"><span class="verdict ${verdictCls}">${verdictLabel}</span></div>
+      <div class="cell-bot" style="margin-top:5px"><span class="grade-badge grade-${gradeKey(grade)}">${escapeHTML(grade)}</span></div>`;
+
+    // ── Levels cell (2 lines) ──────────────────────────────────
+    const entryLine = levels.entry ? `<span class="lv-label">Entry</span> ${fmtNumber(levels.entry, 5)}` : '—';
+    const lvDetail = [
+      levels.stop_loss   ? `<span class="lv-sl">SL</span> <span class="lv-sl">${fmtNumber(levels.stop_loss, 5)}</span>`   : null,
+      levels.tp1         ? `<span class="lv-tp">TP</span> <span class="lv-tp">${fmtNumber(levels.tp1, 5)}</span>`         : null,
+      levels.risk_reward ? `<span class="lv-rr">R:R</span> <span class="lv-rr">${fmtNumber(levels.risk_reward, 2)}</span>` : null,
+    ].filter(Boolean).join('<span class="cell-sep"> · </span>');
+    const levelsCell = `
+      <div class="cell-top levels-entry">${entryLine}</div>
+      <div class="cell-bot">${lvDetail || '—'}</div>`;
 
     rows += `
       <tr class="opp-row${isExpanded ? ' is-expanded' : ''}${hasDetail ? ' has-detail' : ''}"
-          onclick="${hasDetail ? `toggleRow('${key}')` : 'void(0)'}">
+          onclick="${hasDetail ? `toggleRow('${key}')` : ''}">
         <td class="td-rank">${expandIcon}#${o.rank ?? '—'}</td>
-        <td>
-          <span class="opp-symbol">${escapeHTML(o.symbol)}</span>
-          <span class="opp-class">${escapeHTML((o.asset_class || '').replace(/_/g, ' '))}</span>
-        </td>
-        <td class="direction-${direction} mono">${arrow} ${direction.toUpperCase()}</td>
-        <td class="td-setup">${escapeHTML((o.setup_type || '—').replace(/_/g, ' '))}</td>
-        <td class="td-num">${fmtNumber(o.quant_score)}</td>
-        <td class="td-num td-bear">${fmtNumber(o.bear_strength, 0)}</td>
-        <td class="td-num">${aiScore}</td>
-        <td class="td-num td-final">${fmtNumber(o.final_score)}</td>
-        <td class="td-center">
-          <span class="verdict ${verdictCls}">${verdictLabel}</span>
-          <span class="grade-badge grade-${gradeKey(grade)}">${escapeHTML(grade)}</span>
-        </td>
-        <td class="td-num">${fmtNumber(mtf.alignment_score, 2)}</td>
-        <td class="td-num">${levels.entry     ? fmtNumber(levels.entry, 5)       : '—'}</td>
-        <td class="td-num td-sl">${levels.stop_loss  ? fmtNumber(levels.stop_loss, 5)  : '—'}</td>
-        <td class="td-num td-tp">${levels.tp1        ? fmtNumber(levels.tp1, 5)        : '—'}</td>
-        <td class="td-num td-rr">${levels.risk_reward? fmtNumber(levels.risk_reward, 2): '—'}</td>
+        <td>${symbolCell}</td>
+        <td>${analysisCell}</td>
+        <td class="td-right">${scoreCell}</td>
+        <td class="td-center">${verdictCell}</td>
+        <td class="td-right">${levelsCell}</td>
       </tr>
     `;
 
     if (isExpanded && hasDetail) {
       const blocks = [
-        o.thesis       ? { cls: 'thesis-block',      label: 'Thesis',       text: o.thesis } : null,
+        o.thesis       ? { cls: 'thesis-block',      label: 'Thesis',       text: o.thesis       } : null,
         o.invalidation ? { cls: 'invalidation-block', label: 'Invalidation', text: o.invalidation } : null,
-        o.bear_case    ? { cls: 'bear-block',          label: 'Bear Case',    text: o.bear_case } : null,
+        o.bear_case    ? { cls: 'bear-block',          label: 'Bear Case',    text: o.bear_case    } : null,
       ].filter(Boolean);
 
       rows += `
