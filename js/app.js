@@ -30,6 +30,10 @@ function sortOpps(opps) {
     } else if (_sortCol === 'mtf_score') {
       va = (parseJsonField(a.mtf_alignment) || {}).alignment_score ?? 0;
       vb = (parseJsonField(b.mtf_alignment) || {}).alignment_score ?? 0;
+    } else if (_sortCol === 'entry' || _sortCol === 'sl' || _sortCol === 'tp1' || _sortCol === 'rr') {
+      const keyMap = { entry: 'entry', sl: 'stop_loss', tp1: 'tp1', rr: 'risk_reward' };
+      va = (parseJsonField(a.levels) || {})[keyMap[_sortCol]] ?? 0;
+      vb = (parseJsonField(b.levels) || {})[keyMap[_sortCol]] ?? 0;
     } else {
       va = a[_sortCol];
       vb = b[_sortCol];

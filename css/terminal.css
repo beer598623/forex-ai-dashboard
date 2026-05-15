@@ -238,7 +238,7 @@ html, body {
   border-collapse: collapse;
   font-family: var(--font-mono);
   font-size: 12px;
-  min-width: 640px;
+  min-width: 960px;
 }
 .opp-table thead th {
   padding: 10px 11px;
@@ -294,8 +294,12 @@ html, body {
   letter-spacing: 0.07em;
 }
 .td-setup { color: var(--text-secondary); font-size: 11px; }
-.td-num { text-align: right; font-variant-numeric: tabular-nums; font-size: 13px; }
-.td-final { color: var(--accent-cyan); font-weight: 700; font-size: 14px; }
+.td-num { text-align: right; font-variant-numeric: tabular-nums; font-size: 12px; }
+.td-final { color: var(--accent-cyan); font-weight: 700; font-size: 13px; }
+.td-bear  { color: var(--regime-down); opacity: 0.85; }
+.td-sl    { color: var(--regime-down); }
+.td-tp    { color: var(--regime-up); }
+.td-rr    { color: var(--accent-cyan); font-weight: 600; }
 .td-center { text-align: center; white-space: nowrap; }
 
 /* Verdict + Grade badges */
@@ -331,28 +335,6 @@ html, body {
 /* === EXPAND ROW (Levels + Thesis / Invalidation / Bear Case) === */
 .expand-row td { padding: 0; border-bottom: 1px solid var(--border-default); }
 
-/* Trade levels bar */
-.expand-levels {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0 28px;
-  padding: 10px 16px;
-  background: var(--bg-elevated);
-  border-top: 1px solid var(--border-faint);
-  font-family: var(--font-mono);
-  font-size: 12px;
-}
-.el-item { display: flex; align-items: center; gap: 6px; }
-.el-label {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-muted);
-}
-.el-val { font-weight: 600; font-variant-numeric: tabular-nums; }
-.el-val.red   { color: var(--regime-down); }
-.el-val.green { color: var(--regime-up); }
-.el-val.cyan  { color: var(--accent-cyan); }
 .expand-grid {
   display: grid;
   gap: 1px;

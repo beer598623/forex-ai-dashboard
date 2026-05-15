@@ -52,15 +52,20 @@ function renderMarketFilter(opps, activeFilter) {
 }
 
 const OPP_COLS = [
-  { key: 'rank',       label: '#',      align: 'left',   width: '36px' },
-  { key: 'symbol',     label: 'Symbol', align: 'left',   width: '140px' },
-  { key: 'direction',  label: 'Bias',   align: 'left',   width: '80px' },
-  { key: 'setup_type', label: 'Setup',  align: 'left',   width: '' },
-  { key: 'quant_score',label: 'Quant',  align: 'right',  width: '58px' },
-  { key: 'ai_score',   label: 'AI',     align: 'right',  width: '58px' },
-  { key: 'final_score',label: 'Final',  align: 'right',  width: '62px' },
-  { key: 'grade',      label: 'Verdict',align: 'center', width: '96px' },
-  { key: 'mtf_score',  label: 'MTF',   align: 'right',  width: '52px' },
+  { key: 'rank',        label: '#',      align: 'left',   width: '42px' },
+  { key: 'symbol',      label: 'Symbol', align: 'left',   width: '130px' },
+  { key: 'direction',   label: 'Bias',   align: 'left',   width: '72px' },
+  { key: 'setup_type',  label: 'Setup',  align: 'left',   width: '' },
+  { key: 'quant_score', label: 'Quant',  align: 'right',  width: '54px' },
+  { key: 'bear_strength',label:'Bear',   align: 'right',  width: '48px' },
+  { key: 'ai_score',    label: 'AI',     align: 'right',  width: '48px' },
+  { key: 'final_score', label: 'Final',  align: 'right',  width: '58px' },
+  { key: 'grade',       label: 'Grade',  align: 'center', width: '88px' },
+  { key: 'mtf_score',   label: 'MTF',    align: 'right',  width: '48px' },
+  { key: 'entry',       label: 'Entry',  align: 'right',  width: '76px' },
+  { key: 'sl',          label: 'SL',     align: 'right',  width: '76px' },
+  { key: 'tp1',         label: 'TP1',    align: 'right',  width: '76px' },
+  { key: 'rr',          label: 'R:R',    align: 'right',  width: '44px' },
 ];
 
 function renderOpportunitiesTable(opps) {
@@ -71,6 +76,8 @@ function renderOpportunitiesTable(opps) {
       <div class="hint">Awaiting next scheduled scan cycle.</div>
     </div>`;
   }
+
+  const NCOLS = OPP_COLS.length;
 
   const thead = OPP_COLS.map(c => {
     const sortMark = _sortCol === c.key ? (_sortDir === 1 ? ' <span class="sort-arrow">▲</span>' : ' <span class="sort-arrow">▼</span>') : '';
@@ -85,15 +92,17 @@ function renderOpportunitiesTable(opps) {
     const grade = o.grade || 'D';
     const direction = (o.direction || 'neutral').toLowerCase();
     const arrow = direction === 'long' ? '▲' : direction === 'short' ? '▼' : '─';
-    const verdict = (grade === 'A+' || grade === 'A') ? 'TRADE' : grade === 'B' ? 'WATCH' : 'SKIP';
     const verdictCls = (grade === 'A+' || grade === 'A') ? 'verdict-trade' : grade === 'B' ? 'verdict-watch' : 'verdict-skip';
+    const verdictLabel = (grade === 'A+' || grade === 'A') ? 'TRADE' : grade === 'B' ? 'WATCH' : 'SKIP';
     const mtf = parseJsonField(o.mtf_alignment) || {};
+    const levels = parseJsonField(o.levels) || {};
     const aiScore = fmtNumber(o.ai_score ?? (100 - (o.bear_strength ?? 50)));
     const hasDetail = o.thesis || o.invalidation || o.bear_case;
-    const expandIcon = hasDetail ? `<span class="expand-icon">${isExpanded ? '▾' : '▸'}</span>` : '';
+    const expandIcon = hasDetail ? `<span class="expand-icon">${isExpanded ? '▾' : '▸'}</span>` : '<span class="expand-icon-placeholder"></span>';
 
     rows += `
-      <tr class="opp-row${isExpanded ? ' is-expanded' : ''}${hasDetail ? ' has-detail' : ''}" onclick="toggleRow('${key}')">
+      <tr class="opp-row${isExpanded ? ' is-expanded' : ''}${hasDetail ? ' has-detail' : ''}"
+          onclick="${hasDetail ? `toggleRow('${key}')` : 'void(0)'}">
         <td class="td-rank">${expandIcon}#${o.rank ?? '—'}</td>
         <td>
           <span class="opp-symbol">${escapeHTML(o.symbol)}</span>
@@ -102,51 +111,38 @@ function renderOpportunitiesTable(opps) {
         <td class="direction-${direction} mono">${arrow} ${direction.toUpperCase()}</td>
         <td class="td-setup">${escapeHTML((o.setup_type || '—').replace(/_/g, ' '))}</td>
         <td class="td-num">${fmtNumber(o.quant_score)}</td>
+        <td class="td-num td-bear">${fmtNumber(o.bear_strength, 0)}</td>
         <td class="td-num">${aiScore}</td>
         <td class="td-num td-final">${fmtNumber(o.final_score)}</td>
         <td class="td-center">
-          <span class="verdict ${verdictCls}">${verdict}</span>
+          <span class="verdict ${verdictCls}">${verdictLabel}</span>
           <span class="grade-badge grade-${gradeKey(grade)}">${escapeHTML(grade)}</span>
         </td>
         <td class="td-num">${fmtNumber(mtf.alignment_score, 2)}</td>
+        <td class="td-num">${levels.entry     ? fmtNumber(levels.entry, 5)       : '—'}</td>
+        <td class="td-num td-sl">${levels.stop_loss  ? fmtNumber(levels.stop_loss, 5)  : '—'}</td>
+        <td class="td-num td-tp">${levels.tp1        ? fmtNumber(levels.tp1, 5)        : '—'}</td>
+        <td class="td-num td-rr">${levels.risk_reward? fmtNumber(levels.risk_reward, 2): '—'}</td>
       </tr>
     `;
 
-    if (isExpanded) {
-      const levels = parseJsonField(o.levels) || {};
-      const regime = parseJsonField(o.regime) || {};
-      const mtfData = parseJsonField(o.mtf_alignment) || {};
-
-      const levelsHtml = (levels.entry || levels.stop_loss || levels.tp1) ? `
-        <div class="expand-levels">
-          ${levels.entry     ? `<span class="el-item"><span class="el-label">Entry</span><span class="el-val">${fmtNumber(levels.entry, 5)}</span></span>` : ''}
-          ${levels.stop_loss ? `<span class="el-item"><span class="el-label">SL</span><span class="el-val red">${fmtNumber(levels.stop_loss, 5)}</span></span>` : ''}
-          ${levels.tp1       ? `<span class="el-item"><span class="el-label">TP1</span><span class="el-val green">${fmtNumber(levels.tp1, 5)}</span></span>` : ''}
-          ${levels.tp2       ? `<span class="el-item"><span class="el-label">TP2</span><span class="el-val green">${fmtNumber(levels.tp2, 5)}</span></span>` : ''}
-          ${levels.risk_reward ? `<span class="el-item"><span class="el-label">R:R</span><span class="el-val cyan">${fmtNumber(levels.risk_reward, 2)}</span></span>` : ''}
-          ${regime.dominant_regime ? `<span class="el-item"><span class="el-label">Regime</span><span class="el-val">${escapeHTML(regime.dominant_regime.replace(/_/g,' '))}</span></span>` : ''}
-          ${mtfData.alignment_score != null ? `<span class="el-item"><span class="el-label">MTF Align</span><span class="el-val">${fmtNumber(mtfData.alignment_score, 2)}</span></span>` : ''}
-        </div>` : '';
-
+    if (isExpanded && hasDetail) {
       const blocks = [
-        o.thesis       ? { cls: 'thesis-block',       label: 'Thesis',       text: o.thesis } : null,
-        o.invalidation ? { cls: 'invalidation-block',  label: 'Invalidation', text: o.invalidation } : null,
-        o.bear_case    ? { cls: 'bear-block',           label: 'Bear Case',    text: o.bear_case } : null,
+        o.thesis       ? { cls: 'thesis-block',      label: 'Thesis',       text: o.thesis } : null,
+        o.invalidation ? { cls: 'invalidation-block', label: 'Invalidation', text: o.invalidation } : null,
+        o.bear_case    ? { cls: 'bear-block',          label: 'Bear Case',    text: o.bear_case } : null,
       ].filter(Boolean);
-
-      const blocksHtml = blocks.length ? `
-        <div class="expand-grid cols-${blocks.length}">
-          ${blocks.map(b => `
-            <div class="expand-block ${b.cls}">
-              <div class="expand-label">${b.label}</div>
-              <div class="expand-text">${escapeHTML(b.text)}</div>
-            </div>`).join('')}
-        </div>` : '';
 
       rows += `
         <tr class="expand-row">
-          <td colspan="9">
-            ${levelsHtml}${blocksHtml}
+          <td colspan="${NCOLS}">
+            <div class="expand-grid cols-${blocks.length}">
+              ${blocks.map(b => `
+                <div class="expand-block ${b.cls}">
+                  <div class="expand-label">${b.label}</div>
+                  <div class="expand-text">${escapeHTML(b.text)}</div>
+                </div>`).join('')}
+            </div>
           </td>
         </tr>
       `;
