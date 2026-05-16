@@ -42,11 +42,6 @@ html, body {
   overflow-x: hidden;
 }
 
-.mono { font-family: var(--font-mono); }
-.dim { color: var(--text-muted); }
-.secondary { color: var(--text-secondary); }
-.uppercase { text-transform: uppercase; letter-spacing: 0.08em; font-size: 11px; }
-
 /* === STATUS BAR === */
 .status-bar {
   display: flex;
@@ -228,11 +223,6 @@ html, body {
 .grade-C { color: var(--grade-c); background: rgba(108, 122, 138, 0.1); }
 .grade-D { color: var(--grade-d); }
 
-/* High-conviction subtle glow */
-.heatmap-tile.high-conviction {
-  box-shadow: inset 2px 0 0 var(--grade-aplus);
-}
-
 /* === OPPORTUNITIES TABLE === */
 .opp-table-wrap {
   overflow-x: auto;
@@ -261,9 +251,6 @@ html, body {
 .opp-table thead th.sortable { cursor: pointer; }
 .opp-table thead th.sortable:hover { color: var(--text-secondary); background: var(--bg-elevated); }
 .opp-table thead th.active { color: var(--accent-cyan); }
-.th-left   { text-align: left; }
-.th-right  { text-align: right; }
-.th-center { text-align: center; }
 .sort-arrow { font-size: 9px; opacity: 0.7; }
 
 .opp-table tbody tr.opp-row {
@@ -307,10 +294,10 @@ html, body {
 }
 
 /* Score cell */
-.score-final {
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--accent-cyan);
+.score-secondary {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-secondary);
   line-height: 1;
 }
 .score-detail { display: flex; justify-content: flex-end; gap: 10px; margin-top: 5px; }
@@ -340,6 +327,8 @@ html, body {
   border-radius: 2px;
   margin-right: 4px;
 }
+.verdict-lg { font-size: 13px; padding: 4px 12px; letter-spacing: 0.08em; margin-right: 0; }
+.verdict-mobile { font-size: 11px; padding: 3px 9px; margin-right: 0; }
 .verdict-trade { color: var(--grade-a); background: rgba(6,214,160,0.12); border: 1px solid rgba(6,214,160,0.3); }
 .verdict-watch { color: var(--grade-b); background: rgba(244,162,97,0.12); border: 1px solid rgba(244,162,97,0.3); }
 .verdict-skip  { color: var(--text-muted); background: transparent; border: 1px solid var(--border-faint); }
@@ -353,6 +342,7 @@ html, body {
   letter-spacing: 0.04em;
   font-family: var(--font-mono);
 }
+.grade-badge-lg { font-size: 17px; padding: 3px 10px; }
 
 /* Direction colors */
 .direction-long  { color: var(--regime-up); }
@@ -523,7 +513,7 @@ html, body {
 
 .mob-card-header {
   display: grid;
-  grid-template-columns: 28px 1fr auto auto 16px;
+  grid-template-columns: 28px 1fr auto 16px;
   align-items: center;
   gap: 10px;
   padding: 12px 14px;
@@ -547,19 +537,12 @@ html, body {
   color: var(--text-muted);
   margin-top: 2px;
 }
-.mob-score-col {
-  font-family: var(--font-mono);
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--accent-cyan);
-  text-align: right;
-}
 .mob-verdict-col {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 4px;
-  min-width: 56px;
+  gap: 6px;
+  min-width: 70px;
 }
 .mob-expand-arrow {
   font-size: 10px;
@@ -595,6 +578,7 @@ html, body {
   flex-shrink: 0;
 }
 .mob-val { color: var(--text-secondary); text-align: right; flex: 1; }
+.mob-score-val { font-size: 16px; font-weight: 700; color: var(--accent-cyan); }
 
 .mob-divider { height: 1px; background: var(--border-faint); }
 

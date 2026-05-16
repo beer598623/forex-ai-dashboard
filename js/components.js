@@ -55,8 +55,8 @@ const OPP_COLS = [
   { key: 'rank',        label: '#',        align: 'left',   width: '42px'  },
   { key: 'symbol',      label: 'Symbol',   align: 'left',   width: '160px' },
   { key: 'setup_type',  label: 'Analysis', align: 'left',   width: ''      },
-  { key: 'final_score', label: 'Score',    align: 'right',  width: '160px' },
-  { key: 'grade',       label: 'Verdict',  align: 'center', width: '96px'  },
+  { key: 'final_score', label: 'Signal',   align: 'center', width: '140px' },
+  { key: 'grade',       label: 'Score',    align: 'right',  width: '110px' },
   { key: 'entry',       label: 'Levels',   align: 'right',  width: '220px' },
 ];
 
@@ -113,19 +113,19 @@ function renderOpportunitiesTable(opps) {
       <div class="cell-top">${escapeHTML(setupText)}</div>
       <div class="cell-bot">${escapeHTML(regimeText)} <span class="cell-sep">·</span> MTF ${escapeHTML(mtfText)}</div>`;
 
-    // ── Score cell (2 lines) ───────────────────────────────────
+    // ── Signal cell (verdict + grade, prominent) ──────────────
+    const signalCell = `
+      <div class="cell-top" style="text-align:center"><span class="verdict verdict-lg ${verdictCls}">${verdictLabel}</span></div>
+      <div class="cell-bot" style="text-align:center;margin-top:7px"><span class="grade-badge grade-badge-lg grade-${gradeKey(grade)}">${escapeHTML(grade)}</span></div>`;
+
+    // ── Score cell (number + sub, secondary) ──────────────────
     const scoreCell = `
-      <div class="cell-top score-final">${fmtNumber(o.final_score)}</div>
+      <div class="cell-top score-secondary">${fmtNumber(o.final_score)}</div>
       <div class="cell-bot score-detail">
         <span class="sd-item">Q<span class="sd-val">${fmtNumber(o.quant_score, 0)}</span></span>
         <span class="sd-item sd-bear">B<span class="sd-val">${fmtNumber(o.bear_strength, 0)}</span></span>
         <span class="sd-item">AI<span class="sd-val">${fmtNumber(aiScore, 0)}</span></span>
       </div>`;
-
-    // ── Verdict cell (2 lines) ─────────────────────────────────
-    const verdictCell = `
-      <div class="cell-top"><span class="verdict ${verdictCls}">${verdictLabel}</span></div>
-      <div class="cell-bot" style="margin-top:5px"><span class="grade-badge grade-${gradeKey(grade)}">${escapeHTML(grade)}</span></div>`;
 
     // ── Levels cell (2 lines) ──────────────────────────────────
     const entryLine = levels.entry ? `<span class="lv-label">Entry</span> ${fmtNumber(levels.entry, 5)}` : '—';
@@ -144,8 +144,8 @@ function renderOpportunitiesTable(opps) {
         <td class="td-rank">${expandIcon}#${o.rank ?? '—'}</td>
         <td>${symbolCell}</td>
         <td>${analysisCell}</td>
+        <td class="td-center">${signalCell}</td>
         <td class="td-right">${scoreCell}</td>
-        <td class="td-center">${verdictCell}</td>
         <td class="td-right">${levelsCell}</td>
       </tr>
     `;
@@ -231,14 +231,18 @@ function renderOpportunitiesMobile(opps) {
               <span class="direction-${direction}"> · ${arrow} ${direction.toUpperCase()}</span>
             </div>
           </div>
-          <div class="mob-score-col">${fmtNumber(o.final_score)}</div>
           <div class="mob-verdict-col">
-            <span class="verdict ${verdictCls}">${verdictLabel}</span>
-            <span class="grade-badge grade-${gradeKey(grade)}" style="font-size:9px;padding:1px 5px">${escapeHTML(grade)}</span>
+            <span class="verdict verdict-mobile ${verdictCls}">${verdictLabel}</span>
+            <span class="grade-badge grade-badge-lg grade-${gradeKey(grade)}">${escapeHTML(grade)}</span>
           </div>
           <span class="mob-expand-arrow">▶</span>
         </div>
         <div class="mob-card-body">
+          <div class="mob-row">
+            <span class="mob-lbl">Score</span>
+            <span class="mob-val mob-score-val">${fmtNumber(o.final_score)}</span>
+          </div>
+          <div class="mob-divider"></div>
           <div class="mob-row"><span class="mob-lbl">Setup</span><span class="mob-val">${escapeHTML(setupText)}</span></div>
           <div class="mob-row"><span class="mob-lbl">Regime</span><span class="mob-val">${escapeHTML(regimeText)}</span></div>
           <div class="mob-row"><span class="mob-lbl">MTF</span><span class="mob-val">${escapeHTML(mtfText)}</span></div>
