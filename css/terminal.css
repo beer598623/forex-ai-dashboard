@@ -701,6 +701,37 @@ html, body {
   .intel-main { grid-template-columns: 1fr; padding: 8px; }
 }
 
+/* === DATA QUALITY WARNING BADGE === */
+.dq-warn {
+  display: inline-block;
+  margin-left: 5px;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--regime-range);
+  background: rgba(244,162,97,0.1);
+  border: 1px solid rgba(244,162,97,0.3);
+  border-radius: 2px;
+  padding: 1px 4px;
+  vertical-align: middle;
+  cursor: help;
+}
+
+/* === REJECTED ASSETS PANEL === */
+.rejected-card { border-top: 1px solid var(--border-faint); }
+.rejected-list { display: flex; flex-direction: column; gap: 4px; padding-top: 4px; }
+.rejected-row {
+  display: grid;
+  grid-template-columns: 80px 28px 38px 1fr;
+  gap: 6px;
+  align-items: center;
+  font-size: 11px;
+}
+.rejected-sym { color: var(--text-primary); font-weight: 600; }
+.rejected-stage { color: var(--text-muted); font-size: 10px; }
+.rejected-score { color: var(--text-secondary); text-align: right; }
+.rejected-reason { color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+
 .mob-text-content {
   font-size: 11px;
   line-height: 1.6;

@@ -1,26 +1,36 @@
 // Data fetching layer — pulls JSON from data branch via GitHub raw CDN
 const DATA_BASE = './data';
 
+let _lastFetchError = null;
+
 async function fetchJSON(name) {
   try {
     const resp = await fetch(`${DATA_BASE}/${name}.json?t=${Date.now()}`, { cache: 'no-cache' });
-    if (!resp.ok) return [];
+    if (!resp.ok) {
+      _lastFetchError = `${name}.json: HTTP ${resp.status}`;
+      console.warn(`fetchJSON ${name}: HTTP ${resp.status}`);
+      return [];
+    }
     return await resp.json();
   } catch (e) {
+    _lastFetchError = `${name}.json: network error`;
     console.error(`Failed to fetch ${name}:`, e);
     return [];
   }
 }
 
 async function loadDashboardData() {
-  const [scans, opps, macro] = await Promise.all([
+  _lastFetchError = null;
+  const [scans, opps, macro, rejected] = await Promise.all([
     fetchJSON('scan_results'),
     fetchJSON('opportunities'),
     fetchJSON('macro_context'),
+    fetchJSON('rejected_summary'),
   ]);
 
   if (!scans.length || !opps.length) {
-    return { latest: null, opps: [], allScans: scans, allOpps: opps, macro };
+    return { latest: null, opps: [], allScans: scans, allOpps: opps, macro,
+      rejected: Array.isArray(rejected) ? rejected : [], fetchError: _lastFetchError };
   }
 
   // Sort scans desc
@@ -32,7 +42,8 @@ async function loadDashboardData() {
     .filter(o => o.scan_id === latest.scan_id)
     .sort((a, b) => (a.rank || 999) - (b.rank || 999));
 
-  return { latest, opps: latestOpps, allScans: scans, allOpps: opps, macro };
+  return { latest, opps: latestOpps, allScans: scans, allOpps: opps, macro,
+    rejected: Array.isArray(rejected) ? rejected : [], fetchError: null };
 }
 
 function gradeKey(grade) {

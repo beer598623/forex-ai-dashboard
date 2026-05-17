@@ -9,13 +9,14 @@ const ASSET_CLASS_META = {
   indices:         { label: 'Indices' },
 };
 
-function renderStatusBar(latest) {
+function renderStatusBar(latest, fetchError) {
   if (!latest) {
+    const errText = fetchError ? escapeHTML(fetchError) : 'No scan data available';
     return `
       <span class="pulse offline"></span>
       <span class="brand">FOREX AI · INTELLIGENCE TERMINAL</span>
       <span class="item"><span class="label">Status</span><span class="value">OFFLINE</span></span>
-      <span class="item"><span class="label">Last Scan</span><span class="value">—</span></span>
+      <span class="item"><span class="label">Reason</span><span class="value" style="color:var(--regime-down)">${errText}</span></span>
     `;
   }
   return `
@@ -118,8 +119,12 @@ function renderOpportunitiesTable(opps) {
       <div class="cell-bot" style="text-align:center;margin-top:7px"><span class="grade-badge grade-badge-lg grade-${gradeKey(grade)}">${escapeHTML(grade)}</span></div>`;
 
     // ── Score cell (number + sub, secondary) ──────────────────
+    const dqScore = o.data_quality_score != null ? o.data_quality_score : 1.0;
+    const dqBadge = dqScore < 0.85
+      ? `<span class="dq-warn" title="Data quality ${Math.round(dqScore * 100)}% — fallback source used">⚠ fallback</span>`
+      : '';
     const scoreCell = `
-      <div class="cell-top score-secondary">${fmtNumber(o.final_score)}</div>
+      <div class="cell-top score-secondary">${fmtNumber(o.final_score)}${dqBadge}</div>
       <div class="cell-bot score-detail">
         <span class="sd-item">Q<span class="sd-val">${fmtNumber(o.quant_score, 0)}</span></span>
         <span class="sd-item sd-bear">B<span class="sd-val">${fmtNumber(o.bear_strength, 0)}</span></span>
@@ -238,7 +243,11 @@ function renderOpportunitiesMobile(opps) {
         <div class="mob-card-body">
           <div class="mob-row">
             <span class="mob-lbl">Score</span>
-            <span class="mob-val mob-score-val">${fmtNumber(o.final_score)}</span>
+            <span class="mob-val mob-score-val">${fmtNumber(o.final_score)}${
+              (o.data_quality_score != null && o.data_quality_score < 0.85)
+                ? ` <span class="dq-warn" title="Data quality ${Math.round(o.data_quality_score * 100)}%">⚠ fallback</span>`
+                : ''
+            }</span>
           </div>
           <div class="mob-divider"></div>
           <div class="mob-row"><span class="mob-lbl">Setup</span><span class="mob-val">${escapeHTML(setupText)}</span></div>
@@ -269,9 +278,9 @@ function renderOpportunitiesMobile(opps) {
   return html;
 }
 
-function renderAssetSummary(opps) {
+function renderAssetSummary(opps, rejected) {
   if (!opps.length) {
-    return `<div class="empty-state"><div class="icon">◇</div><div>No data</div></div>`;
+    return `<div class="empty-state"><div class="icon">◇</div><div>Awaiting scan data — next cycle runs at 00:00, 07:00, or 13:00 UTC.</div></div>`;
   }
 
   const LABELS = {
@@ -285,7 +294,7 @@ function renderAssetSummary(opps) {
     groups[cls].push(o);
   }
 
-  return Object.entries(groups).map(([cls, items]) => {
+  const summaryCards = Object.entries(groups).map(([cls, items]) => {
     const avgScore = items.reduce((s, o) => s + (o.final_score || 0), 0) / items.length;
     const grades = {};
     const setups = {};
@@ -320,6 +329,161 @@ function renderAssetSummary(opps) {
       </div>
     `;
   }).join('');
+
+  let rejectedHtml = '';
+  if (Array.isArray(rejected) && rejected.length > 0) {
+    const topRejected = rejected.slice(0, 8);
+    const rows = topRejected.map(r => {
+      const stage = r.stage === 1 ? 'S1' : r.stage === 2 ? 'S2' : r.stage || '—';
+      const score = r.score != null ? fmtNumber(r.score, 1) : '—';
+      const reason = (r.reason || '—').replace(/_/g, ' ');
+      return `<div class="rejected-row">
+        <span class="rejected-sym">${escapeHTML(r.symbol || '—')}</span>
+        <span class="rejected-stage">${stage}</span>
+        <span class="rejected-score">${score}</span>
+        <span class="rejected-reason">${escapeHTML(reason)}</span>
+      </div>`;
+    }).join('');
+    rejectedHtml = `
+      <div class="summary-card rejected-card">
+        <div class="summary-header">
+          <span class="summary-name">Rejected (${rejected.length})</span>
+        </div>
+        <div class="rejected-list">${rows}</div>
+      </div>
+    `;
+  }
+
+  return summaryCards + rejectedHtml;
+}
+
+// ── Intelligence Tab ─────────────────────────────────────────────
+
+function renderMacroCard(macro) {
+  if (!macro || !macro.macro_bias) {
+    return `<div class="intel-card">
+      <div class="panel-header"><h2>Macro Analyst</h2></div>
+      <div class="intel-body"><div class="intel-text" style="color:var(--text-muted)">No macro data yet — will appear after next scan cycle.</div></div>
+    </div>`;
+  }
+
+  const PAIR_ORDER = ['EURUSD', 'GBPUSD', 'USDJPY', 'XAUUSD', 'AUDUSD'];
+  const biasCls = { bullish: 'bias-bullish', bearish: 'bias-bearish', neutral: 'bias-neutral' };
+  const biasLabel = { bullish: '▲ BULLISH', bearish: '▼ BEARISH', neutral: '─ NEUTRAL' };
+
+  const pairsHtml = PAIR_ORDER
+    .filter(p => macro.macro_bias[p])
+    .map(p => {
+      const b = (macro.macro_bias[p] || 'neutral').toLowerCase();
+      return `<div class="macro-pair">
+        <span class="macro-sym">${escapeHTML(p)}</span>
+        <span class="${biasCls[b] || 'bias-neutral'}">${biasLabel[b] || b.toUpperCase()}</span>
+      </div>`;
+    }).join('');
+
+  const validUntil = macro.valid_until ? new Date(macro.valid_until) : null;
+  const validText = validUntil
+    ? (validUntil > new Date() ? `Valid ${fmtTime(macro.valid_until)}` : 'Cache expired — refreshing next cycle')
+    : '';
+
+  return `<div class="intel-card">
+    <div class="panel-header">
+      <h2>Macro Analyst</h2>
+      <span class="count">${macro.macro_confidence ?? '—'}% confidence</span>
+    </div>
+    <div class="macro-pairs">${pairsHtml}</div>
+    <div class="intel-body">
+      <div class="intel-section">
+        <div class="intel-label">Primary Driver</div>
+        <div class="intel-text">${escapeHTML(macro.primary_driver || '—')}</div>
+      </div>
+      <div class="intel-section">
+        <div class="intel-label">Rate Differential Trend</div>
+        <div class="intel-text">${escapeHTML(macro.rate_differential_trend || '—')}</div>
+      </div>
+      <div class="intel-section">
+        <div class="intel-label">Key Risk</div>
+        <div class="intel-text">${escapeHTML(macro.key_risk_to_thesis || '—')}</div>
+      </div>
+    </div>
+    ${validText ? `<div class="intel-meta">${escapeHTML(validText)}</div>` : ''}
+  </div>`;
+}
+
+function renderRegimeDistribution(opps) {
+  const REGIMES = [
+    { key: 'trending_up',   label: 'Trending Up',   cls: 'rbar-up' },
+    { key: 'trending_down', label: 'Trending Down',  cls: 'rbar-down' },
+    { key: 'ranging',       label: 'Ranging',        cls: 'rbar-range' },
+    { key: 'chop',          label: 'Chop',           cls: 'rbar-chop' },
+  ];
+
+  if (!opps.length) {
+    return `<div class="intel-card">
+      <div class="panel-header"><h2>Regime Distribution</h2></div>
+      <div class="intel-body"><div class="intel-text" style="color:var(--text-muted)">No signals in current scan.</div></div>
+    </div>`;
+  }
+
+  const counts = {};
+  for (const o of opps) counts[o.regime] = (counts[o.regime] || 0) + 1;
+  const total = opps.length;
+
+  const barsHtml = REGIMES.map(r => {
+    const n = counts[r.key] || 0;
+    const pct = total > 0 ? Math.round(n / total * 100) : 0;
+    return `<div class="regime-row">
+      <span class="regime-name">${r.label}</span>
+      <div class="regime-bar-wrap">
+        <div class="regime-bar-fill ${r.cls}" style="width:${pct}%"></div>
+      </div>
+      <span class="regime-pct">${n > 0 ? n : '─'}</span>
+    </div>`;
+  }).join('');
+
+  return `<div class="intel-card">
+    <div class="panel-header"><h2>Regime Distribution</h2><span class="count">${total} signals</span></div>
+    <div class="regime-bars">${barsHtml}</div>
+  </div>`;
+}
+
+function renderSessionHistory(allScans) {
+  if (!allScans || !allScans.length) {
+    return `<div class="intel-card">
+      <div class="panel-header"><h2>Session History</h2></div>
+      <div class="intel-body"><div class="intel-text" style="color:var(--text-muted)">No scan history yet.</div></div>
+    </div>`;
+  }
+
+  const recent = [...allScans]
+    .sort((a, b) => new Date(b.scanned_at) - new Date(a.scanned_at))
+    .slice(0, 15);
+
+  const sessCls = s => {
+    const k = (s || '').toLowerCase().replace(' ', '_');
+    return `sess-${['tokyo','london','new_york'].includes(k) ? k : 'other'}`;
+  };
+
+  const rows = recent.map(s => {
+    const latency = s.total_duration_ms ? Math.round(s.total_duration_ms / 1000) + 's' : '—';
+    const sess = (s.session || 'unknown').toUpperCase();
+    return `<tr>
+      <td>${escapeHTML(fmtTime(s.scanned_at))}</td>
+      <td><span class="sess-badge ${sessCls(s.session)}">${escapeHTML(sess)}</span></td>
+      <td>${s.total_scanned ?? '—'}</td>
+      <td>${s.stage1_passed ?? '—'}</td>
+      <td>${s.stage2_passed ?? '—'}</td>
+      <td>${latency}</td>
+    </tr>`;
+  }).join('');
+
+  return `<div class="intel-card">
+    <div class="panel-header"><h2>Session History</h2><span class="count">${allScans.length} scans</span></div>
+    <table class="session-table">
+      <thead><tr><th>Time</th><th>Session</th><th>Scan</th><th>S1✓</th><th>S2✓</th><th>Latency</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`;
 }
 
 // ── Intelligence Tab ─────────────────────────────────────────────

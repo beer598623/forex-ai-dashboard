@@ -1,6 +1,6 @@
 // Main app — boots, fetches, renders
 
-let _state = { latest: null, opps: [], allOpps: [], allScans: [], macro: null };
+let _state = { latest: null, opps: [], allOpps: [], allScans: [], macro: null, rejected: [], fetchError: null };
 let _filter = 'all';
 let _sortCol = 'rank';
 let _sortDir = 1;
@@ -9,9 +9,9 @@ let _expanded = new Set();
 async function boot() {
   const data = await loadDashboardData();
   _state = data;
-  document.getElementById('status-bar').innerHTML = renderStatusBar(data.latest);
+  document.getElementById('status-bar').innerHTML = renderStatusBar(data.latest, data.fetchError);
   document.getElementById('filter').innerHTML = renderMarketFilter(data.opps, _filter);
-  document.getElementById('summary').innerHTML = renderAssetSummary(data.opps);
+  document.getElementById('summary').innerHTML = renderAssetSummary(data.opps, data.rejected);
   renderFiltered();
   renderIntelligence();
 }
