@@ -1,6 +1,6 @@
 // Main app — boots, fetches, renders
 
-let _state = { latest: null, opps: [], allOpps: [], allScans: [] };
+let _state = { latest: null, opps: [], allOpps: [], allScans: [], macro: null };
 let _filter = 'all';
 let _sortCol = 'rank';
 let _sortDir = 1;
@@ -13,6 +13,13 @@ async function boot() {
   document.getElementById('filter').innerHTML = renderMarketFilter(data.opps, _filter);
   document.getElementById('summary').innerHTML = renderAssetSummary(data.opps);
   renderFiltered();
+  renderIntelligence();
+}
+
+function renderIntelligence() {
+  document.getElementById('intel-macro').innerHTML    = renderMacroCard(_state.macro);
+  document.getElementById('intel-regime').innerHTML   = renderRegimeDistribution(_state.opps);
+  document.getElementById('intel-sessions').innerHTML = renderSessionHistory(_state.allScans);
 }
 
 function getFilteredOpps() {
@@ -28,11 +35,11 @@ function sortOpps(opps) {
       va = a.ai_score ?? (100 - (a.bear_strength ?? 50));
       vb = b.ai_score ?? (100 - (b.bear_strength ?? 50));
     } else if (_sortCol === 'mtf_score') {
-      va = (parseJsonField(a.mtf_alignment) || {}).alignment_score ?? 0;
-      vb = (parseJsonField(b.mtf_alignment) || {}).alignment_score ?? 0;
+      va = a.mtf_alignment ?? 0;
+      vb = b.mtf_alignment ?? 0;
     } else if (_sortCol === 'entry') {
-      va = (parseJsonField(a.levels) || {}).entry ?? 0;
-      vb = (parseJsonField(b.levels) || {}).entry ?? 0;
+      va = a.entry ?? 0;
+      vb = b.entry ?? 0;
     } else {
       va = a[_sortCol];
       vb = b[_sortCol];

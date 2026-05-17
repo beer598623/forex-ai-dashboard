@@ -88,14 +88,13 @@ function renderOpportunitiesTable(opps) {
     const arrow = direction === 'long' ? '▲' : direction === 'short' ? '▼' : '─';
     const verdictCls = (grade === 'A+' || grade === 'A') ? 'verdict-trade' : grade === 'B' ? 'verdict-watch' : 'verdict-skip';
     const verdictLabel = (grade === 'A+' || grade === 'A') ? 'Trade' : grade === 'B' ? 'Watch' : 'Skip';
-    const mtf = parseJsonField(o.mtf_alignment) || {};
-    const levels = parseJsonField(o.levels) || {};
-    const regime = parseJsonField(o.regime) || {};
     const aiScore = o.ai_score ?? (100 - (o.bear_strength ?? 50));
     const hasDetail = o.thesis || o.invalidation || o.bear_case;
     const expandIcon = hasDetail
       ? `<span class="expand-icon">${isExpanded ? '▾' : '▸'}</span>`
       : '<span class="expand-icon-placeholder"></span>';
+    const rrVal = o.entry && o.sl && o.tp1 && Math.abs(o.entry - o.sl) > 0
+      ? Math.abs(o.tp1 - o.entry) / Math.abs(o.entry - o.sl) : null;
 
     // ── Symbol cell (2 lines) ──────────────────────────────────
     const symbolCell = `
@@ -107,8 +106,8 @@ function renderOpportunitiesTable(opps) {
 
     // ── Analysis cell (2 lines) ────────────────────────────────
     const setupText = (o.setup_type || '—').replace(/_/g, ' ');
-    const regimeText = (regime.dominant_regime || '—').replace(/_/g, ' ');
-    const mtfText = mtf.alignment_score != null ? fmtNumber(mtf.alignment_score, 2) : '—';
+    const regimeText = (o.regime || '—').replace(/_/g, ' ');
+    const mtfText = o.mtf_alignment != null ? fmtNumber(o.mtf_alignment, 2) : '—';
     const analysisCell = `
       <div class="cell-top">${escapeHTML(setupText)}</div>
       <div class="cell-bot">${escapeHTML(regimeText)} <span class="cell-sep">·</span> MTF ${escapeHTML(mtfText)}</div>`;
@@ -128,11 +127,11 @@ function renderOpportunitiesTable(opps) {
       </div>`;
 
     // ── Levels cell (2 lines) ──────────────────────────────────
-    const entryLine = levels.entry ? `<span class="lv-label">Entry</span> ${fmtNumber(levels.entry, 5)}` : '—';
+    const entryLine = o.entry ? `<span class="lv-label">Entry</span> ${fmtPrice(o.entry)}` : '—';
     const lvDetail = [
-      levels.stop_loss   ? `<span class="lv-sl">SL</span> <span class="lv-sl">${fmtNumber(levels.stop_loss, 5)}</span>`   : null,
-      levels.tp1         ? `<span class="lv-tp">TP</span> <span class="lv-tp">${fmtNumber(levels.tp1, 5)}</span>`         : null,
-      levels.risk_reward ? `<span class="lv-rr">R:R</span> <span class="lv-rr">${fmtNumber(levels.risk_reward, 2)}</span>` : null,
+      o.sl   ? `<span class="lv-sl">SL</span> <span class="lv-sl">${fmtPrice(o.sl)}</span>`       : null,
+      o.tp1  ? `<span class="lv-tp">TP</span> <span class="lv-tp">${fmtPrice(o.tp1)}</span>`       : null,
+      rrVal  ? `<span class="lv-rr">R:R</span> <span class="lv-rr">${fmtNumber(rrVal, 2)}</span>`  : null,
     ].filter(Boolean).join('<span class="cell-sep"> · </span>');
     const levelsCell = `
       <div class="cell-top levels-entry">${entryLine}</div>
@@ -201,18 +200,17 @@ function renderOpportunitiesMobile(opps) {
     const arrow = direction === 'long' ? '▲' : direction === 'short' ? '▼' : '─';
     const verdictCls = (grade === 'A+' || grade === 'A') ? 'verdict-trade' : grade === 'B' ? 'verdict-watch' : 'verdict-skip';
     const verdictLabel = (grade === 'A+' || grade === 'A') ? 'Trade' : grade === 'B' ? 'Watch' : 'Skip';
-    const mtf = parseJsonField(o.mtf_alignment) || {};
-    const levels = parseJsonField(o.levels) || {};
-    const regime = parseJsonField(o.regime) || {};
     const aiScore = o.ai_score ?? (100 - (o.bear_strength ?? 50));
     const setupText = (o.setup_type || '—').replace(/_/g, ' ');
-    const regimeText = (regime.dominant_regime || '—').replace(/_/g, ' ');
-    const mtfText = mtf.alignment_score != null ? fmtNumber(mtf.alignment_score, 2) : '—';
+    const regimeText = (o.regime || '—').replace(/_/g, ' ');
+    const mtfText = o.mtf_alignment != null ? fmtNumber(o.mtf_alignment, 2) : '—';
+    const rrMob = o.entry && o.sl && o.tp1 && Math.abs(o.entry - o.sl) > 0
+      ? Math.abs(o.tp1 - o.entry) / Math.abs(o.entry - o.sl) : null;
 
-    const entryLine = levels.entry ? fmtNumber(levels.entry, 5) : '—';
-    const slLine = levels.stop_loss ? `<span class="lv-sl">${fmtNumber(levels.stop_loss, 5)}</span>` : '—';
-    const tpLine = levels.tp1 ? `<span class="lv-tp">${fmtNumber(levels.tp1, 5)}</span>` : '—';
-    const rrLine = levels.risk_reward ? `<span class="lv-rr">${fmtNumber(levels.risk_reward, 2)}</span>` : '—';
+    const entryLine = o.entry ? fmtPrice(o.entry) : '—';
+    const slLine = o.sl   ? `<span class="lv-sl">${fmtPrice(o.sl)}</span>`   : '—';
+    const tpLine = o.tp1  ? `<span class="lv-tp">${fmtPrice(o.tp1)}</span>`  : '—';
+    const rrLine = rrMob  ? `<span class="lv-rr">${fmtNumber(rrMob, 2)}</span>` : '—';
 
     const textBlocks = [
       o.thesis       ? `<div class="mob-text-block thesis"><div class="mob-text-label">Thesis</div><div class="mob-text-content">${escapeHTML(o.thesis)}</div></div>` : '',
@@ -297,8 +295,7 @@ function renderAssetSummary(opps) {
       grades[g] = (grades[g] || 0) + 1;
       const s = o.setup_type || 'unknown';
       setups[s] = (setups[s] || 0) + 1;
-      const r = parseJsonField(o.regime) || {};
-      const dom = r.dominant_regime || 'ranging';
+      const dom = o.regime || 'ranging';
       regimes[dom] = (regimes[dom] || 0) + 1;
     }
     const topSetup = Object.entries(setups).sort((a, b) => b[1] - a[1])[0];
@@ -323,4 +320,133 @@ function renderAssetSummary(opps) {
       </div>
     `;
   }).join('');
+}
+
+// ── Intelligence Tab ─────────────────────────────────────────────
+
+function renderMacroCard(macro) {
+  if (!macro || !macro.macro_bias) {
+    return `<div class="intel-card">
+      <div class="panel-header"><h2>Macro Analyst</h2></div>
+      <div class="intel-body"><div class="intel-text" style="color:var(--text-muted)">No macro data yet — will appear after next scan cycle.</div></div>
+    </div>`;
+  }
+
+  const PAIR_ORDER = ['EURUSD', 'GBPUSD', 'USDJPY', 'XAUUSD', 'AUDUSD'];
+  const biasCls = { bullish: 'bias-bullish', bearish: 'bias-bearish', neutral: 'bias-neutral' };
+  const biasLabel = { bullish: '▲ BULLISH', bearish: '▼ BEARISH', neutral: '─ NEUTRAL' };
+
+  const pairsHtml = PAIR_ORDER
+    .filter(p => macro.macro_bias[p])
+    .map(p => {
+      const b = (macro.macro_bias[p] || 'neutral').toLowerCase();
+      return `<div class="macro-pair">
+        <span class="macro-sym">${escapeHTML(p)}</span>
+        <span class="${biasCls[b] || 'bias-neutral'}">${biasLabel[b] || b.toUpperCase()}</span>
+      </div>`;
+    }).join('');
+
+  const validUntil = macro.valid_until ? new Date(macro.valid_until) : null;
+  const validText = validUntil
+    ? (validUntil > new Date() ? `Valid ${fmtTime(macro.valid_until)}` : 'Cache expired — refreshing next cycle')
+    : '';
+
+  return `<div class="intel-card">
+    <div class="panel-header">
+      <h2>Macro Analyst</h2>
+      <span class="count">${macro.macro_confidence ?? '—'}% confidence</span>
+    </div>
+    <div class="macro-pairs">${pairsHtml}</div>
+    <div class="intel-body">
+      <div class="intel-section">
+        <div class="intel-label">Primary Driver</div>
+        <div class="intel-text">${escapeHTML(macro.primary_driver || '—')}</div>
+      </div>
+      <div class="intel-section">
+        <div class="intel-label">Rate Differential Trend</div>
+        <div class="intel-text">${escapeHTML(macro.rate_differential_trend || '—')}</div>
+      </div>
+      <div class="intel-section">
+        <div class="intel-label">Key Risk</div>
+        <div class="intel-text">${escapeHTML(macro.key_risk_to_thesis || '—')}</div>
+      </div>
+    </div>
+    ${validText ? `<div class="intel-meta">${escapeHTML(validText)}</div>` : ''}
+  </div>`;
+}
+
+function renderRegimeDistribution(opps) {
+  const REGIMES = [
+    { key: 'trending_up',   label: 'Trending Up',   cls: 'rbar-up' },
+    { key: 'trending_down', label: 'Trending Down',  cls: 'rbar-down' },
+    { key: 'ranging',       label: 'Ranging',        cls: 'rbar-range' },
+    { key: 'chop',          label: 'Chop',           cls: 'rbar-chop' },
+  ];
+
+  if (!opps.length) {
+    return `<div class="intel-card">
+      <div class="panel-header"><h2>Regime Distribution</h2></div>
+      <div class="intel-body"><div class="intel-text" style="color:var(--text-muted)">No signals in current scan.</div></div>
+    </div>`;
+  }
+
+  const counts = {};
+  for (const o of opps) counts[o.regime] = (counts[o.regime] || 0) + 1;
+  const total = opps.length;
+
+  const barsHtml = REGIMES.map(r => {
+    const n = counts[r.key] || 0;
+    const pct = total > 0 ? Math.round(n / total * 100) : 0;
+    return `<div class="regime-row">
+      <span class="regime-name">${r.label}</span>
+      <div class="regime-bar-wrap">
+        <div class="regime-bar-fill ${r.cls}" style="width:${pct}%"></div>
+      </div>
+      <span class="regime-pct">${n > 0 ? n : '─'}</span>
+    </div>`;
+  }).join('');
+
+  return `<div class="intel-card">
+    <div class="panel-header"><h2>Regime Distribution</h2><span class="count">${total} signals</span></div>
+    <div class="regime-bars">${barsHtml}</div>
+  </div>`;
+}
+
+function renderSessionHistory(allScans) {
+  if (!allScans || !allScans.length) {
+    return `<div class="intel-card">
+      <div class="panel-header"><h2>Session History</h2></div>
+      <div class="intel-body"><div class="intel-text" style="color:var(--text-muted)">No scan history yet.</div></div>
+    </div>`;
+  }
+
+  const recent = [...allScans]
+    .sort((a, b) => new Date(b.scanned_at) - new Date(a.scanned_at))
+    .slice(0, 15);
+
+  const sessCls = s => {
+    const k = (s || '').toLowerCase().replace(' ', '_');
+    return `sess-${['tokyo','london','new_york'].includes(k) ? k : 'other'}`;
+  };
+
+  const rows = recent.map(s => {
+    const latency = s.total_duration_ms ? Math.round(s.total_duration_ms / 1000) + 's' : '—';
+    const sess = (s.session || 'unknown').toUpperCase();
+    return `<tr>
+      <td>${escapeHTML(fmtTime(s.scanned_at))}</td>
+      <td><span class="sess-badge ${sessCls(s.session)}">${escapeHTML(sess)}</span></td>
+      <td>${s.total_scanned ?? '—'}</td>
+      <td>${s.stage1_passed ?? '—'}</td>
+      <td>${s.stage2_passed ?? '—'}</td>
+      <td>${latency}</td>
+    </tr>`;
+  }).join('');
+
+  return `<div class="intel-card">
+    <div class="panel-header"><h2>Session History</h2><span class="count">${allScans.length} scans</span></div>
+    <table class="session-table">
+      <thead><tr><th>Time</th><th>Session</th><th>Scan</th><th>S1✓</th><th>S2✓</th><th>Latency</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`;
 }

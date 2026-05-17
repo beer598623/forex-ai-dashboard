@@ -13,13 +13,14 @@ async function fetchJSON(name) {
 }
 
 async function loadDashboardData() {
-  const [scans, opps] = await Promise.all([
+  const [scans, opps, macro] = await Promise.all([
     fetchJSON('scan_results'),
     fetchJSON('opportunities'),
+    fetchJSON('macro_context'),
   ]);
 
   if (!scans.length || !opps.length) {
-    return { latest: null, opps: [], allScans: scans };
+    return { latest: null, opps: [], allScans: scans, allOpps: opps, macro };
   }
 
   // Sort scans desc
@@ -31,7 +32,7 @@ async function loadDashboardData() {
     .filter(o => o.scan_id === latest.scan_id)
     .sort((a, b) => (a.rank || 999) - (b.rank || 999));
 
-  return { latest, opps: latestOpps, allScans: scans, allOpps: opps };
+  return { latest, opps: latestOpps, allScans: scans, allOpps: opps, macro };
 }
 
 function gradeKey(grade) {
@@ -42,6 +43,13 @@ function gradeKey(grade) {
 function fmtNumber(n, decimals = 1) {
   if (n === null || n === undefined || isNaN(n)) return '—';
   return Number(n).toFixed(decimals);
+}
+
+function fmtPrice(n) {
+  if (n === null || n === undefined || isNaN(n)) return '—';
+  const v = Math.abs(Number(n));
+  const d = v >= 1000 ? 2 : v >= 1 ? 5 : v >= 0.001 ? 6 : 8;
+  return Number(n).toFixed(d);
 }
 
 function fmtTime(iso) {
